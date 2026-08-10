@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket de Compra</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .ticket {
+            background: white;
+            width: 320px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .text-center {
+            text-align: center;
+        }
+        .linea-separadora {
+            border-top: 1px dashed #333;
+            margin: 10px 0;
+        }
+        .linea-gruesa {
+            border-top: 2px solid #000;
+            margin: 10px 0;
+        }
+        .flex-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+        .total-row {
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        .btn-imprimir {
+            display: block;
+            width: 100%;
+            background: #1f6f43;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        @media print {
+            .btn-imprimir, .menu-bar { display: none; }
+            body { background: white; }
+            .ticket { border: none; box-shadow: none; width: 100%; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ticket">
+        <!-- Encabezado del Ticket -->
+        <div class="text-center">
+            <h3 style="margin: 0 0 5px 0;">Ticket Ejemplo</h3>
+            <p style="margin: 2px 0; font-size: 12px;">Dirección de Ejemplo Línea 1</p>
+            <p style="margin: 2px 0; font-size: 12px;">Dirección de Ejemplo Línea 2</p>
+            <p style="margin: 2px 0; font-size: 12px;">Teléfono de Ejemplo</p>
+        </div>
+
+        <div class="linea-separadora"></div>
+
+        <!-- Fecha y Hora -->
+        <div style="font-size: 12px; display: flex; justify-content: space-between;">
+            <span>Fecha: 11/08/14</span>
+            <span>Hora: 16:19:01</span>
+        </div>
+
+        <div class="linea-separadora"></div>
+
+        <!-- Detalle de Productos -->
+        <div style="font-size: 13px;">
+            <div style="font-weight: bold;">001072 ACEITUNAS RELLE</div>
+            <div class="flex-row">
+                <span>2,000 x 17,50</span>
+                <span>10,00</span>
+            </div>
+
+            <div style="font-weight: bold; margin-top: 8px;">549225 AGUA SABORIZADA</div>
+            <div class="flex-row">
+                <span>1 x 35,00</span>
+                <span>35,00</span>
+            </div>
+
+            <div style="font-weight: bold; margin-top: 8px;">000160 AMERICANO GANCI</div>
+            <div class="flex-row">
+                <span>1 x 57,00</span>
+                <span>57,00</span>
+            </div>
+        </div>
+
+        <div class="linea-gruesa"></div>
+
+        <!-- Total -->
+        <div class="total-row">
+            <span>TOTAL</span>
+            <span>$ 102,00</span>
+        </div>
+
+        <div class="linea-gruesa"></div>
+
+        <!-- Pie de Ticket -->
+        <div class="text-center" style="font-size: 12px; margin-top: 15px;">
+            <p>Muchas gracias por su compra</p>
+        </div>
+
+        <!-- Botón para imprimir directamente -->
+        <button class="btn-imprimir" onclick="window.print()">Imprimir Ticket</button>
+    </div>
+
+</body>
+</html>

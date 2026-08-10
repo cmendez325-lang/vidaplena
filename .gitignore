@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist_app/
+frontend/dist/
+*.log
+.env
+database.db
+*.rar

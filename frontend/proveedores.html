@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Proveedores - Sistema de Facturación</title>
+    <link rel="stylesheet" href="src/style.css" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #2d3748;
+        }
+
+        .menu-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            height: 48px;
+        }
+
+        .menu-bar a {
+            color: #1e40af;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #1a202c;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-verde {
+            width: 100%;
+            background-color: #1e7e48;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-verde:hover {
+            background-color: #165e36;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table th {
+            background-color: #1d528f;
+            color: white;
+            padding: 9px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .btn-accion {
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-editar { background-color: #0284c7; }
+        .btn-borrar { background-color: #dc2626; margin-left: 3px; }
+    </style>
+</head>
+<body>
+
+    <!-- Menú Superior -->
+    <div class="menu-bar">
+        <a href="index.html">Archivo / Caja</a>
+        <a href="productos.html">Artículos</a>
+        <a href="ventas.html">Ventas</a>
+        <a href="compras.html">Compras</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="informes.html">Informes</a>
+        <a href="proveedores.html"><strong>Proveedores</strong></a>
+        <a href="listados.html">Listados</a>
+        <a href="alquileres.html">Alquileres</a>
+        <a href="ayuda.html">Ayuda</a>
+    </div>
+    
+    <!-- Encabezado con Logo y Subtítulo -->
+<div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
+    <img src="./logo.png" alt="Vida Plena Logo" style="height: 80px; width: auto; object-fit: contain;">
+    <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
+</div>
+
+    <div style="padding: 20px; max-width: 1300px; margin: 0 auto;">
+        
+        <h2 style="margin-top: 0; font-size: 22px; color: #2d3748;">
+            Gestión de Proveedores
+        </h2>
+
+        <div class="layout-grid">
+            
+            <!-- Formulario -->
+            <div class="card">
+                <h3>Nuevo / Editar Proveedor</h3>
+                <input type="hidden" id="txtProveedorIndex" value="-1">
+
+                <div class="form-group">
+                    <label>Razón Social / Nombre</label>
+                    <input type="text" id="txtRazonSocial" placeholder="Ej. razon social o nombre del proveedor">
+                </div>
+
+                <div class="form-group">
+                    <label>CUIT / Teléfono</label>
+                    <input type="text" id="txtCuitTelefono" placeholder="Ej. numero de CUIT o teléfono del proveedor">
+                </div>
+
+                <!-- Botón corregido con onclick -->
+                <button type="button" class="btn-verde" onclick="guardarProveedor()">Guardar Proveedor</button>
+            </div>
+
+            <!-- Tabla de Proveedores -->
+            <div class="card">
+                <h3>Base de Datos de Proveedores</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Razón Social</th>
+                                <th>CUIT / Teléfono</th>
+                                <th style="text-align: center; width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaProveedores">
+                            <!-- Se completa dinámicamente desde JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a href="index.html" style="background: #e2e8f0; color: #2d3748; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px;">← Volver a Caja</a>
+        </div>
+
+    </div>
+
+    <script>
+        // Cargar lista desde localStorage
+        let proveedores = JSON.parse(localStorage.getItem('listaProveedores')) || [];
+
+        function guardarProveedor() {
+            let razonSocial = document.getElementById('txtRazonSocial').value.trim();
+            let cuitTelefono = document.getElementById('txtCuitTelefono').value.trim();
+            let indexEdit = parseInt(document.getElementById('txtProveedorIndex').value);
+
+            if (!razonSocial) {
+                alert("Por favor ingresá la Razón Social o Nombre del proveedor.");
+                return;
+            }
+
+            if (indexEdit === -1) {
+                // Crear nuevo
+                let nuevo = {
+                    id: 'PROV-' + (proveedores.length + 1).toString().padStart(3, '0'),
+                    razonSocial: razonSocial,
+                    cuitTelefono: cuitTelefono || '-'
+                };
+                proveedores.push(nuevo);
+            } else {
+                // Editar existente
+                proveedores[indexEdit].razonSocial = razonSocial;
+                proveedores[indexEdit].cuitTelefono = cuitTelefono || '-';
+                document.getElementById('txtProveedorIndex').value = "-1";
+            }
+
+            // Persistir cambios
+            localStorage.setItem('listaProveedores', JSON.stringify(proveedores));
+
+            // Limpiar formulario
+            document.getElementById('txtRazonSocial').value = '';
+            document.getElementById('txtCuitTelefono').value = '';
+
+            renderizarTabla();
+        }
+
+        function editarProveedor(index) {
+            let p = proveedores[index];
+            document.getElementById('txtRazonSocial').value = p.razonSocial;
+            document.getElementById('txtCuitTelefono').value = p.cuitTelefono === '-' ? '' : p.cuitTelefono;
+            document.getElementById('txtProveedorIndex').value = index;
+        }
+
+        function borrarProveedor(index) {
+            if (confirm("¿Seguro que querés eliminar este proveedor?")) {
+                proveedores.splice(index, 1);
+                localStorage.setItem('listaProveedores', JSON.stringify(proveedores));
+                renderizarTabla();
+            }
+        }
+
+        function renderizarTabla() {
+            let tbody = document.getElementById('tablaProveedores');
+            tbody.innerHTML = '';
+
+            if (proveedores.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #718096; padding: 20px;">No hay proveedores cargados todavía.</td></tr>`;
+                return;
+            }
+
+            proveedores.forEach((p, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.id || 'PROV-' + (index+1)}</strong></td>
+                        <td>${p.razonSocial}</td>
+                        <td>${p.cuitTelefono}</td>
+                        <td style="text-align: center;">
+                            <button class="btn-accion btn-editar" onclick="editarProveedor(${index})">✏️</button>
+                            <button class="btn-accion btn-borrar" onclick="borrarProveedor(${index})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Renderizado inicial al abrir la página
+        renderizarTabla();
+    </script>
+</body>
+</html>

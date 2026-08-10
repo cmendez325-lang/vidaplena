@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Informes y Reportes - Sistema de Facturación</title>
+    <link rel="stylesheet" href="src/style.css" />
+    <style>
+        .report-card {
+            background: #ffffff;
+            border: 1px solid #d5e1cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f8faf6;
+            border-left: 4px solid #1f6f43;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .stat-box h5 {
+            margin: 0 0 8px 0;
+            color: #555;
+            font-size: 13px;
+        }
+        .stat-box .number {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1f6f43;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Menú de Navegación con Informes Activo -->
+    <div class="menu-bar">
+        <a href="index.html">Archivo / Caja</a>
+        <a href="productos.html">Artículos</a>
+        <a href="ventas.html">Ventas</a>
+        <a href="compras.html">Compras</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="informes.html"><strong>Informes</strong></a>
+        <a href="proveedores.html">Proveedores</a>
+        <a href="listados.html">Listados</a>
+        <a href="alquileres.html">Alquileres</a>
+        <a href="ayuda.html">Ayuda</a>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 10px; margin-bottom: 15px;">
+        <img src="./logo.png" alt="Vida Plena Logo" style="height: 60px; width: auto; object-fit: contain;">
+        <h3 style="margin: 0; color: #1f618d;">Informes y Estadísticas de Ventas</h3>
+    </div>
+
+    <!-- Múltiples Resúmenes y Filtros -->
+    <div class="report-card">
+        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+            <label for="filtroFecha"><strong>Período:</strong></label>
+            <select id="filtroFecha" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="hoy">Hoy</option>
+                <option value="mes">Este Mes</option>
+                <option value="anio">Este Año</option>
+            </select>
+            <button id="btnGenerarReporte" style="padding: 6px 12px; background: #1f6f43; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Generar Reporte</button>
+        </div>
+
+        <!-- Cajas de Estadísticas de Resumen -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h5>Total Recaudado</h5>
+                <div class="number" id="totalVentas">$ 0,00</div>
+            </div>
+            <div class="stat-box">
+                <h5>Comprobantes Emitidos</h5>
+                <div class="number" id="cantVentas">0</div>
+            </div>
+            <div class="stat-box">
+                <h5>Total de Compras</h5>
+                <div class="number" id="totalCompras">$ 0,00</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-card">
+        <h4>Top Productos más Vendidos</h4>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto / Descripción</th>
+                        <th>Unidades Vendidas</th>
+                        <th>Total Recaudado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTopProductos">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #777;">Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button onclick="window.location.href='index.html'" style="padding: 8px 15px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">← Volver a Caja</button>
+
+    <script>
+        function fmt(n) {
+            return (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('es-AR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        async function cargarInformes() {
+            const periodo = document.getElementById('filtroFecha').value;
+            const tbody = document.getElementById('tablaTopProductos');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #777;">Cargando...</td></tr>';
+
+            try {
+                const respuesta = await fetch(`http://localhost:3000/api/informes/resumen?periodo=${periodo}`);
+                if (!respuesta.ok) throw new Error('Error al consultar el backend');
+                const datos = await respuesta.json();
+
+                document.getElementById('totalVentas').innerText = '$ ' + fmt(datos.totalRecaudado);
+                document.getElementById('cantVentas').innerText = datos.cantVentas;
+                document.getElementById('totalCompras').innerText = '$ ' + fmt(datos.totalCompras);
+
+                if (datos.topProductos && datos.topProductos.length > 0) {
+                    tbody.innerHTML = '';
+                    datos.topProductos.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${p.codigo}</td>
+                            <td>${p.descripcion}</td>
+                            <td style="text-align: center;">${p.unidadesVendidas}</td>
+                            <td style="text-align: right;">$ ${fmt(p.totalRecaudado)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #777;">No hay registros disponibles para el período seleccionado.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error cargando informes:', err);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #c0392b;">No se pudo conectar con el backend. ¿Está corriendo node server.js?</td></tr>';
+            }
+        }
+
+        document.getElementById('btnGenerarReporte').addEventListener('click', cargarInformes);
+        document.addEventListener('DOMContentLoaded', cargarInformes);
+    </script>
+
+</body>
+</html>

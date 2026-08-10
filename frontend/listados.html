@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Artículos - Sistema de Facturación</title>
+    <link rel="stylesheet" href="src/style.css" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #2d3748;
+        }
+
+        .menu-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            height: 48px;
+        }
+
+        .menu-bar a {
+            color: #1e40af;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #1a202c;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 4px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .box-precio-final {
+            background-color: #edf7ed;
+            border: 1px solid #c8e6c9;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            margin: 12px 0;
+        }
+
+        .box-precio-final span {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #2e7d32;
+            letter-spacing: 0.5px;
+        }
+
+        .box-precio-final h2 {
+            margin: 4px 0 0 0;
+            font-size: 20px;
+            color: #1b5e20;
+        }
+
+        .btn-verde {
+            width: 100%;
+            background-color: #1e7e48;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-verde:hover { background-color: #165e36; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table th {
+            background-color: #1d528f;
+            color: white;
+            padding: 9px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: middle;
+        }
+
+        .img-thumb {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            margin: 0 2px;
+        }
+
+        .btn-editar { background-color: #f59e0b; }
+        .btn-editar:hover { background-color: #d97706; }
+
+        .btn-borrar { background-color: #ef4444; }
+        .btn-borrar:hover { background-color: #dc2626; }
+    </style>
+</head>
+<body>
+
+    <!-- Menú Superior -->
+    <div class="menu-bar">
+        <a href="index.html">Archivo / Caja</a>
+        <a href="productos.html"><strong>Artículos</strong></a>
+        <a href="ventas.html">Ventas</a>
+        <a href="compras.html">Compras</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="informes.html">Informes</a>
+        <a href="proveedores.html">Proveedores</a>
+        <a href="listados.html">Listados</a>
+        <a href="alquileres.html">Alquileres</a>
+        <a href="ayuda.html">Ayuda</a>
+    </div>
+    
+    <!-- Encabezado con Logo y Subtítulo -->
+<div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
+    <img src="./logo.png" alt="Vida Plena Logo" style="height: 80px; width: auto; object-fit: contain;">
+    <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
+</div>
+
+    <div style="padding: 20px; max-width: 1350px; margin: 0 auto;">
+        
+        <div class="layout-grid">
+            
+            <!-- Formulario de Artículo -->
+            <div class="card">
+                <h3>Nuevo Artículo</h3>
+                <input type="hidden" id="txtIndex" value="-1">
+
+                <div class="form-group">
+                    <label>Código de Barras</label>
+                    <input type="text" id="txtCodigo" placeholder="Ej. 7791234567890">
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre / Descripción</label>
+                    <input type="text" id="txtNombre" placeholder="Ej. Nombre o descripción del artículo">
+                </div>
+
+                <div class="form-group">
+                    <label>Costo Neto ($)</label>
+                    <input type="number" id="txtCosto" step="0.01" value="0.00" oninput="calcularPrecioFinal()">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>% Ganancia</label>
+                        <input type="number" id="txtGanancia" value="30" oninput="calcularPrecioFinal()">
+                    </div>
+                    <div class="form-group">
+                        <label>% IVA</label>
+                        <select id="selectIva" onchange="calcularPrecioFinal()">
+                            <option value="21">21%</option>
+                            <option value="10.5">10.5%</option>
+                            <option value="0">0%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="box-precio-final">
+                    <span>PRECIO FINAL CALCULADO</span>
+                    <h2 id="lblPrecioCalculado">$0,00</h2>
+                </div>
+
+                <div class="form-group">
+                    <label>Imagen del Producto (Hacer clic aquí)</label>
+                    <input type="file" id="fileImagen" accept="image/*" onchange="previewImagen(event)">
+                </div>
+
+                <div class="form-group">
+                    <label>Departamento / Categoría</label>
+                    <select id="selectDepto">
+                        <option value="SALUD">SALUD</option>
+                        <option value="BIENESTAR">BIENESTAR</option>
+                        <option value="EQUIPAMIENTO">EQUIPAMIENTO</option>
+                        <option value="ORTOPEDIA">ORTOPEDIA</option>
+                        <option value="DESCARTABLES">DESCARTABLES</option>
+                        <option value="VARIOS">VARIOS</option>
+                    </select>
+                </div>
+
+                <button type="button" class="btn-verde" onclick="guardarProducto()">Guardar Producto</button>
+            </div>
+
+            <!-- Tabla de Productos -->
+            <div class="card">
+                <h3>Base de Datos de Productos</h3>
+                <div style="overflow-x: auto; max-height: 560px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Imagen</th>
+                                <th style="width: 110px;">Código</th>
+                                <th>Descripción</th>
+                                <th>Depto.</th>
+                                <th style="text-align: right; width: 100px;">Venta</th>
+                                <th style="text-align: center; width: 80px;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaProductos">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let productos = JSON.parse(localStorage.getItem('listaProductos')) || [
+            { idImg: '', codigo: "779003001", descripcion: "Catéteres Especializados", depto: "EQUIPAMIENTO", precio: 5033.60 },
+            { idImg: '', codigo: "779003002", descripcion: "Bola de Masaje", depto: "BIENESTAR", precio: 11797.50 },
+            { idImg: '', codigo: "779003003", descripcion: "Cojín Dona Pequeño", depto: "ORTOPEDIA", precio: 4404.40 },
+            { idImg: '', codigo: "779003004", descripcion: "K-Stat Suministro de Soporte", depto: "EQUIPAMIENTO", precio: 5505.50 },
+            { idImg: '', codigo: "779001001", descripcion: "Venda Elástica Flebológica", depto: "DESCARTABLES", precio: 7865.00 },
+            { idImg: '', codigo: "779001003", descripcion: "Cinta Kinesiológica K5.0", depto: "ORTOPEDIA", precio: 3146.00 },
+            { idImg: '', codigo: "779001002", descripcion: "Barbijo Descartable Vida Plena", depto: "DESCARTABLES", precio: 2359.50 },
+            { idImg: '', codigo: "779002002", descripcion: "Asiento Dual Confort Schwartz", depto: "ORTOPEDIA", precio: 0.00 }
+        ];
+
+        let base64ImageTemp = '';
+
+        function formatearMoneda(monto) {
+            return "$ " + Number(monto).toFixed(2);
+        }
+
+        function calcularPrecioFinal() {
+            let costo = parseFloat(document.getElementById('txtCosto').value) || 0;
+            let ganancia = parseFloat(document.getElementById('txtGanancia').value) || 0;
+            let iva = parseFloat(document.getElementById('selectIva').value) || 0;
+
+            let subtotal = costo * (1 + (ganancia / 100));
+            let total = subtotal * (1 + (iva / 100));
+
+            document.getElementById('lblPrecioCalculado').textContent = formatearMoneda(total);
+            return total;
+        }
+
+        function previewImagen(e) {
+            let file = e.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function (evt) {
+                    base64ImageTemp = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function guardarProducto() {
+            let codigo = document.getElementById('txtCodigo').value.trim();
+            let descripcion = document.getElementById('txtNombre').value.trim();
+            let depto = document.getElementById('selectDepto').value;
+            let precio = calcularPrecioFinal();
+            let index = parseInt(document.getElementById('txtIndex').value);
+
+            if (!codigo || !descripcion) {
+                alert("Por favor ingresá el código y la descripción del producto.");
+                return;
+            }
+
+            let prodObj = {
+                idImg: base64ImageTemp,
+                codigo: codigo,
+                descripcion: descripcion,
+                depto: depto,
+                precio: precio
+            };
+
+            if (index === -1) {
+                productos.push(prodObj);
+            } else {
+                if (!base64ImageTemp) prodObj.idImg = productos[index].idImg;
+                productos[index] = prodObj;
+                document.getElementById('txtIndex').value = "-1";
+            }
+
+            localStorage.setItem('listaProductos', JSON.stringify(productos));
+
+            // Resetear
+            document.getElementById('txtCodigo').value = '';
+            document.getElementById('txtNombre').value = '';
+            document.getElementById('txtCosto').value = '0.00';
+            document.getElementById('fileImagen').value = '';
+            base64ImageTemp = '';
+            calcularPrecioFinal();
+
+            renderizarTabla();
+        }
+
+        function editarProducto(index) {
+            let p = productos[index];
+            document.getElementById('txtCodigo').value = p.codigo;
+            document.getElementById('txtNombre').value = p.descripcion;
+            document.getElementById('selectDepto').value = p.depto || 'SALUD';
+            document.getElementById('lblPrecioCalculado').textContent = formatearMoneda(p.precio);
+            document.getElementById('txtIndex').value = index;
+            base64ImageTemp = p.idImg || '';
+        }
+
+        function borrarProducto(index) {
+            if (confirm("¿Deseas eliminar este producto de la base de datos?")) {
+                productos.splice(index, 1);
+                localStorage.setItem('listaProductos', JSON.stringify(productos));
+                renderizarTabla();
+            }
+        }
+
+        function renderizarTabla() {
+            let tbody = document.getElementById('tablaProductos');
+            tbody.innerHTML = '';
+
+            productos.forEach((p, index) => {
+                let imgHtml = p.idImg 
+                    ? `<img src="${p.idImg}" class="img-thumb">` 
+                    : `<div style="width:38px;height:38px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;">📦</div>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${imgHtml}</td>
+                        <td><strong>${p.codigo}</strong></td>
+                        <td>${p.descripcion}</td>
+                        <td><span style="font-size:11px; font-weight:bold; color:#475569;">${p.depto || 'SALUD'}</span></td>
+                        <td style="text-align: right; font-weight: bold; color: #1e7e48;">${formatearMoneda(p.precio)}</td>
+                        <td style="text-align: center;">
+                            <button class="btn-icon btn-editar" onclick="editarProducto(${index})">✏️</button>
+                            <button class="btn-icon btn-borrar" onclick="borrarProducto(${index})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Carga inicial
+        renderizarTabla();
+        calcularPrecioFinal();
+    </script>
+</body>
+</html>

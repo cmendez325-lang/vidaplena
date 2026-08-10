@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ventas del Día - Sistema de Facturación</title>
+    <link rel="stylesheet" href="src/style.css" />
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: #f8faf6;
+            border: 1px solid #d5e1cc;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .kpi-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1f6f43;
+            margin-top: 5px;
+        }
+
+        .section-box {
+            background: white;
+            border: 1px solid #d5e1cc;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .table-ventas {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table-ventas th {
+            background-color: #1f5383;
+            color: white;
+            padding: 8px 10px;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .table-ventas td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+
+        .btn-accion {
+            padding: 3px 8px;
+            font-size: 12px;
+            border: 1px solid #b5c4a1;
+            background: #e2ebd8;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 4px;
+        }
+
+        .btn-accion:hover {
+            background: #d1e1c2;
+        }
+
+        /* --- ESTILOS EXCLUSIVOS PARA IMPRESIÓN --- */
+        @media print {
+            .menu-bar, 
+            .no-print, 
+            .btn-accion, 
+            #btnExportarCierre,
+            .btn-volver {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .section-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .kpi-card {
+                border: 1px solid #333;
+            }
+
+            .table-ventas th {
+                background-color: #333 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Menú Superior -->
+    <div class="menu-bar no-print">
+        <a href="index.html">Archivo / Caja</a>
+        <a href="productos.html">Artículos</a>
+        <a href="ventas.html"><strong>Ventas</strong></a>
+        <a href="compras.html">Compras</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="informes.html">Informes</a>
+        <a href="proveedores.html">Proveedores</a>
+        <a href="listados.html">Listados</a>
+        <a href="alquileres.html">Alquileres</a>
+        <a href="ayuda.html">Ayuda</a>
+    </div>
+
+    <!-- Encabezado con Logo -->
+    <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px;">
+        <img src="./logo.png" alt="Vida Plena Logo" style="height: 60px; width: auto; object-fit: contain;">
+        <h3 style="margin: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
+    </div>
+
+    <h3 style="color: #1f5383; margin-bottom: 15px;">Control y Registro de Ventas del Día 📊</h3>
+
+    <!-- Tarjetas KPI -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-title">Total Vendido Hoy</div>
+            <div class="kpi-value" id="lblTotalVendido">$ 0,00</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Cantidad de Tickets</div>
+            <div class="kpi-value" id="lblCantTickets" style="color: #1f618d;">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Ticket Promedio</div>
+            <div class="kpi-value" id="lblTicketPromedio" style="color: #1f618d;">$ 0,00</div>
+        </div>
+    </div>
+
+    <!-- Tabla de Operaciones -->
+    <div class="section-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; color: #1f5383;">Detalle de Operaciones (Fecha Actual)</h4>
+            <button id="btnExportarCierre" class="btn-accion" style="padding: 6px 12px; font-weight: bold; background: #eef2eb; color: #1f6f43;">
+                🖨️ Exportar / Imprimir Cierre
+            </button>
+        </div>
+
+        <table class="table-ventas">
+            <thead>
+                <tr>
+                    <th>Nº Ticket</th>
+                    <th>Hora</th>
+                    <th>Tipo Comprobante</th>
+                    <th>Artículos</th>
+                    <th>Total Cobrado</th>
+                    <th class="no-print">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaVentasBody">
+                <tr><td colspan="6" style="text-align: center; color: #777;">Cargando...</td></tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 15px;" class="no-print">
+            <button class="btn-volver btn-accion" onclick="window.location.href='index.html'" style="padding: 6px 12px;">← Volver a Caja</button>
+        </div>
+    </div>
+
+    <!-- Modal para Detalle e Impresión del Ticket -->
+    <div id="modalTicket" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 20px; border-radius: 8px; width: 350px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+            <div id="contenidoTicketImprimir" style="font-family: monospace; font-size: 13px;">
+                <div style="text-align: center; font-weight: bold; font-size: 15px;">VIDA PLENA</div>
+                <div style="text-align: center;">Insumos Hospitalarios</div>
+                <div style="text-align: center; margin-bottom: 10px;">--------------------------------</div>
+                <div id="ticketModalHeader"></div>
+                <div>--------------------------------</div>
+                <div id="ticketModalDetalle"></div>
+                <div>--------------------------------</div>
+                <div id="ticketModalTotal" style="font-size: 15px; font-weight: bold; text-align: right;"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;" class="no-print">
+                <button onclick="cerrarModalTicket()" class="btn-accion">Cerrar</button>
+                <button onclick="imprimirModalTicket()" class="btn-accion" style="background: #1f6f43; color: white; font-weight: bold;">🖨️ Imprimir Ticket</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ventasDelDia = [];
+
+        function fmt(n) {
+            return (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('es-AR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        async function cargarVentasDelDia() {
+            const tbody = document.getElementById('tablaVentasBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #777;">Cargando...</td></tr>';
+
+            try {
+                const respuesta = await fetch('http://localhost:3000/api/ventas/hoy');
+                if (!respuesta.ok) throw new Error('Error al consultar el backend');
+                const datos = await respuesta.json();
+
+                ventasDelDia = datos.ventas || [];
+
+                document.getElementById('lblTotalVendido').innerText = '$ ' + fmt(datos.totalVendido);
+                document.getElementById('lblCantTickets').innerText = datos.cantTickets;
+                document.getElementById('lblTicketPromedio').innerText = '$ ' + fmt(datos.ticketPromedio);
+
+                renderizarTablaVentas();
+            } catch (err) {
+                console.error('Error cargando ventas del día:', err);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #c0392b;">No se pudo conectar con el backend. ¿Está corriendo node server.js?</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarVentasDelDia();
+
+            // Evento para Imprimir Cierre Diario
+            document.getElementById('btnExportarCierre').addEventListener('click', () => {
+                window.print();
+            });
+        });
+
+        function renderizarTablaVentas() {
+            const tbody = document.getElementById('tablaVentasBody');
+            tbody.innerHTML = '';
+
+            if (ventasDelDia.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #777;">Todavía no hay ventas registradas hoy.</td></tr>';
+                return;
+            }
+
+            ventasDelDia.forEach((v, index) => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: bold;">${v.id}</td>
+                    <td>${v.hora}</td>
+                    <td>${v.tipo}</td>
+                    <td>${v.articulos} ítem${v.articulos === 1 ? '' : 's'}</td>
+                    <td style="color: #1f6f43; font-weight: bold;">$ ${fmt(v.total)}</td>
+                    <td class="no-print">
+                        <button class="btn-accion" onclick="verTicket(${index})">Ver</button>
+                        <button class="btn-accion" onclick="imprimirTicketDirecto(${index})">🖨️ Imprimir</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function verTicket(index) {
+            let venta = ventasDelDia[index];
+            document.getElementById('ticketModalHeader').innerHTML = `
+                Ticket N°: ${venta.id}<br>
+                Hora: ${venta.hora}<br>
+                Tipo: ${venta.tipo}
+            `;
+
+            let detalleHTML = '';
+            venta.lista.forEach(i => {
+                detalleHTML += `${i.cant}x ${i.desc}<br><span style="float:right;">$ ${fmt(i.cant * i.precio)}</span><br>`;
+            });
+            document.getElementById('ticketModalDetalle').innerHTML = detalleHTML;
+            document.getElementById('ticketModalTotal').innerText = `TOTAL: $ ${fmt(venta.total)}`;
+
+            document.getElementById('modalTicket').style.display = 'flex';
+        }
+
+        function cerrarModalTicket() {
+            document.getElementById('modalTicket').style.display = 'none';
+        }
+
+        function imprimirModalTicket() {
+            window.print();
+        }
+
+        function imprimirTicketDirecto(index) {
+            verTicket(index);
+            setTimeout(() => {
+                window.print();
+            }, 200);
+        }
+    </script>
+</body>
+</html>

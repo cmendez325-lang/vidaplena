@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Alquileres - Sistema de Facturación</title>
+    <!-- Importante: Asegúrate de que la ruta al CSS sea correcta -->
+    <link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+
+    <!-- Menú Superior Uniforme -->
+    <div class="menu-bar">
+        <a href="index.html">Archivo / Caja</a>
+        <a href="productos.html">Artículos</a>
+        <a href="ventas.html">Ventas</a>
+        <a href="compras.html">Compras</a>
+        <a href="clientes.html">Clientes</a>
+        <a href="informes.html">Informes</a>
+        <a href="proveedores.html">Proveedores</a>
+        <a href="listados.html">Listados</a>
+        <a href="alquileres.html"><strong>Alquileres</strong></a> <!-- Negrita solo en la página actual -->
+        <a href="ayuda.html">Ayuda</a>
+    </div>
+
+    <!-- Encabezado con el Logo y subtítulo institucional -->
+    <div style="display: flex; align-items: flex-end; gap: 12px; margin: 10px 20px;">
+        <img src="./logo.png" alt="Vida Plena Logo" style="height: 60px; width: auto; object-fit: contain;">
+        <h3 class="caja-title" style="margin: 0; border-bottom: none;">Insumos Hospitalarios</h3>
+    </div>
+    <!-- Contenido Principal -->
+    <div style="padding: 20px; max-width: 1000px; margin: 0 auto;">
+        
+        <h2>🔑 Gestión de Alquiler de Productos</h2>
+        
+        <!-- Tarjeta: Registrar Nuevo Alquiler -->
+        <div style="background: white; padding: 25px; border: 1px solid #c2d0b0; border-radius: 6px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="color: #1f6f43; margin-top: 0; border-bottom: 2px solid #1f6f43; padding-bottom: 8px;">REGISTRAR NUEVO ALQUILER</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div>
+                    <label style="font-weight: bold; color: #555; display: block; margin-bottom: 5px;">Cliente:</label>
+                    <input type="text" id="txtCliente" placeholder="Ej. Juan Pérez" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; color: #555; display: block; margin-bottom: 5px;">Producto a Alquilar:</label>
+                    <select id="selectProducto" onchange="alSeleccionarProducto()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                        <option value="">Seleccione un producto...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; color: #555; display: block; margin-bottom: 5px;">Fecha de Entrega:</label>
+                    <input type="date" id="fechaEntrega" onchange="recalcularPorFechas()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; color: #555; display: block; margin-bottom: 5px;">Fecha de Devolución:</label>
+                    <input type="date" id="fechaDevolucion" onchange="recalcularPorFechas()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <!-- Panel de Cálculo -->
+            <div style="background: #f9fbf9; padding: 15px; border: 1px solid #e2e8f0; border-left: 4px solid #1f6f43; border-radius: 4px; margin-top: 20px; display: flex; justify-content: space-around; align-items: center; text-align: center;">
+                <div>
+                    <span style="font-size: 13px; color: #555; font-weight: bold; display: block; margin-bottom: 3px;">Precio x Día ($):</span>
+                    <input type="number" id="txtPrecioDia" value="0" min="0" step="50" style="width: 90px; text-align: center; font-weight: bold; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" oninput="actualizarTotal()">
+                </div>
+
+                <div>
+                    <span style="font-size: 13px; color: #555; font-weight: bold; display: block; margin-bottom: 3px;">Días (Editable):</span>
+                    <input type="number" id="txtCantidadDias" value="1" min="1" style="width: 70px; text-align: center; font-weight: bold; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" oninput="actualizarTotal()">
+                </div>
+
+                <div>
+                    <span style="font-size: 13px; color: #555; font-weight: bold;">Total Alquiler:</span>
+                    <strong id="lblTotalAlquiler" style="display: block; font-size: 20px; color: #1f6f43;">$ 0,00</strong>
+                </div>
+            </div>
+
+            <button onclick="guardarAlquiler()" style="width: 100%; background: #1f6f43; color: white; border: none; padding: 10px; margin-top: 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                Confirmar y Registrar Alquiler
+            </button>
+        </div>
+
+        <!-- Tarjeta: Contratos Registrados -->
+        <div style="background: white; padding: 25px; border: 1px solid #c2d0b0; border-radius: 6px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="color: #333; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 8px;">CONTRATOS REGISTRADOS</h3>
+            
+            <div style="overflow-x: auto; margin-top: 15px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #1f6f43; color: white;">
+                            <th style="padding: 10px; text-align: left;">Cliente</th>
+                            <th style="padding: 10px; text-align: left;">Producto</th>
+                            <th style="padding: 10px; text-align: left;">Inicio</th>
+                            <th style="padding: 10px; text-align: left;">Devolución</th>
+                            <th style="padding: 10px; text-align: center;">Días</th>
+                            <th style="padding: 10px; text-align: right;">Precio/Día</th>
+                            <th style="padding: 10px; text-align: right;">Total</th>
+                            <th style="padding: 10px; text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaAlquileres">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top: 25px;">
+            <a href="index.html" style="background: #ccc; color: #333; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold;">← Volver a Caja</a>
+        </div>
+
+    </div>
+
+    <!-- Script Funcional -->
+    <script>
+        let productos = JSON.parse(localStorage.getItem('listaProductos')) || [];
+        
+        if (productos.length === 0) {
+            productos = [
+                { codigo: 'A01', descripcion: 'Silla de Ruedas', precio: 3000 },
+                { codigo: 'A02', descripcion: 'Muletas de Aluminio', precio: 1500 },
+                { codigo: 'A03', descripcion: 'Bota Ortopédica', precio: 2000 }
+            ];
+            localStorage.setItem('listaProductos', JSON.stringify(productos));
+        }
+
+        let alquileres = JSON.parse(localStorage.getItem('listaAlquileres')) || [];
+
+        function formatearMoneda(monto) {
+            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto);
+        }
+
+        function cargarFechasDefecto() {
+            let hoy = new Date();
+            let manana = new Date();
+            manana.setDate(hoy.getDate() + 1);
+
+            document.getElementById('fechaEntrega').value = hoy.toISOString().split('T')[0];
+            document.getElementById('fechaDevolucion').value = manana.toISOString().split('T')[0];
+        }
+
+        function poblarSelectProductos() {
+            let select = document.getElementById('selectProducto');
+            select.innerHTML = '<option value="">Seleccione un producto...</option>';
+            productos.forEach((prod, index) => {
+                let precioProd = parseFloat(prod.precio || prod.precioVenta || 0);
+                let option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${prod.descripcion} (${formatearMoneda(precioProd)}/día)`;
+                select.appendChild(option);
+            });
+        }
+
+        function alSeleccionarProducto() {
+            let index = document.getElementById('selectProducto').value;
+            let precioSugerido = 0;
+            if (index !== "" && productos[index]) {
+                precioSugerido = parseFloat(productos[index].precio || productos[index].precioVenta || 0);
+            }
+            document.getElementById('txtPrecioDia').value = precioSugerido;
+            recalcularPorFechas();
+        }
+
+        function recalcularPorFechas() {
+            let f1 = new Date(document.getElementById('fechaEntrega').value + 'T00:00:00');
+            let f2 = new Date(document.getElementById('fechaDevolucion').value + 'T00:00:00');
+
+            if (!isNaN(f1.getTime()) && !isNaN(f2.getTime()) && f2 >= f1) {
+                let dias = Math.ceil((f2 - f1) / (1000 * 60 * 60 * 24));
+                if (dias === 0) dias = 1;
+                document.getElementById('txtCantidadDias').value = dias;
+            }
+            actualizarTotal();
+        }
+
+        function actualizarTotal() {
+            let precioDia = parseFloat(document.getElementById('txtPrecioDia').value) || 0;
+            let dias = parseInt(document.getElementById('txtCantidadDias').value) || 0;
+            let total = dias * precioDia;
+
+            document.getElementById('lblTotalAlquiler').innerText = formatearMoneda(total);
+        }
+
+        function guardarAlquiler() {
+            let cliente = document.getElementById('txtCliente').value.trim();
+            let indexProd = document.getElementById('selectProducto').value;
+            let precioDia = parseFloat(document.getElementById('txtPrecioDia').value) || 0;
+            let dias = parseInt(document.getElementById('txtCantidadDias').value) || 0;
+            let total = dias * precioDia;
+
+            if (!cliente || indexProd === "" || dias <= 0 || precioDia <= 0) {
+                alert("Por favor completa cliente, producto, precio mayor a $0 y al menos 1 día.");
+                return;
+            }
+
+            let nuevo = {
+                id: Date.now(),
+                cliente: cliente,
+                producto: productos[indexProd].descripcion,
+                fechaEntrega: document.getElementById('fechaEntrega').value,
+                fechaDevolucion: document.getElementById('fechaDevolucion').value,
+                dias: dias,
+                precioDia: precioDia,
+                total: total
+            };
+
+            alquileres.push(nuevo);
+            localStorage.setItem('listaAlquileres', JSON.stringify(alquileres));
+            
+            document.getElementById('txtCliente').value = '';
+            document.getElementById('selectProducto').value = '';
+            document.getElementById('txtPrecioDia').value = '0';
+            document.getElementById('txtCantidadDias').value = '1';
+            cargarFechasDefecto();
+            actualizarTotal();
+            renderizarTabla();
+        }
+
+        function eliminarAlquiler(id) {
+            if (confirm("¿Estás seguro de que querés borrar este registro de alquiler?")) {
+                alquileres = alquileres.filter(a => a.id !== id);
+                localStorage.setItem('listaAlquileres', JSON.stringify(alquileres));
+                renderizarTabla();
+            }
+        }
+
+        function renderizarTabla() {
+            let tbody = document.getElementById('tablaAlquileres');
+            tbody.innerHTML = '';
+
+            if (alquileres.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #777; padding: 15px;">No hay alquileres registrados.</td></tr>`;
+                return;
+            }
+
+            alquileres.forEach(a => {
+                tbody.innerHTML += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;"><strong>${a.cliente}</strong></td>
+                        <td style="padding: 8px;">${a.producto}</td>
+                        <td style="padding: 8px;">${a.fechaEntrega}</td>
+                        <td style="padding: 8px;">${a.fechaDevolucion}</td>
+                        <td style="padding: 8px; text-align: center; font-weight: bold;">${a.dias}</td>
+                        <td style="padding: 8px; text-align: right;">${formatearMoneda(a.precioDia)}</td>
+                        <td style="padding: 8px; text-align: right; font-weight: bold; color: #1f6f43;">${formatearMoneda(a.total)}</td>
+                        <td style="padding: 8px; text-align: center;">
+                            <button onclick="eliminarAlquiler(${a.id})" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold;">🗑️ Borrar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        cargarFechasDefecto();
+        poblarSelectProductos();
+        renderizarTabla();
+    </script>
+</body>
+</html>

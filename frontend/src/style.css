@@ -1,0 +1,604 @@
+/* ==========================================
+   1. Estilos Generales y Reset (Vida Plena)
+   ========================================== */
+
+:root {
+    --primary-color: #1a4b8c;       /* Azul institucional profundo */
+    --primary-hover: #123566;     /* Azul oscuro para hover */
+    --accent-color: #27ae60;      /* Verde clínico del isotipo */
+    --bg-container: #eef3f9;      /* Fondo general azulado muy tenue */
+    --header-bg: #1a4b8c;         /* Fondo de barras superiores */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f7fb;
+    margin: 0;
+    padding: 0;
+    color: #333333;
+    overflow-x: hidden;
+    width: 100vw;
+    box-sizing: border-box;
+}
+
+.container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 20px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+h2.caja-title {
+    color: var(--primary-color);
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 5px;
+}
+
+/* ==========================================
+   2. Barra de Menú Superior
+   ========================================== */
+.menu-bar {
+    background-color: #ffffff;
+    padding: 6px 15px;
+    border-bottom: 1px solid #d0dbe5;
+    display: flex;
+    gap: 15px;
+    font-size: 13px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.menu-bar a {
+    text-decoration: none;
+    color: var(--primary-color);
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.menu-bar a:hover {
+    background-color: var(--bg-container);
+    text-decoration: none;
+}
+
+/* ==========================================
+   3. Diseño Principal de Caja (index.html)
+   ========================================== */
+.caja-view {
+    padding: 5px 10px !important;
+    margin-bottom: 0 !important;
+}
+
+.main-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.left-panel {
+    flex: 2; /* Ocupa más espacio para la tabla y buscadores */
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Sección superior de escaneo */
+.scanner-box {
+    background: #ffffff;
+    padding: 6px 8px !important;
+    border: 1px solid #b3d1ff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+.scanner-box label {
+    font-size: 12px;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.scanner-box input[type="text"] {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 14px;
+    background-color: #f0f6ff;
+    border: 1px solid #99c2ff;
+    border-radius: 4px;
+    outline: none;
+}
+
+.scanner-box input[type="text"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 3px rgba(26, 75, 140, 0.3);
+}
+
+.scanner-box input[type="number"] {
+    width: 55px;
+    padding: 7px;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #99c2ff;
+    border-radius: 4px;
+    outline: none;
+}
+
+.btn-buscar {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    border: none;
+    padding: 8px 14px;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-buscar:hover { 
+    background-color: var(--primary-hover) !important; 
+}
+
+/* Tabla de Artículos en Caja */
+.table-container, .tabla-contenedor {
+    background: white;
+    border: 1px solid #b3d1ff;
+    border-radius: 6px;
+    height: 160px !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    margin-bottom: 5px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+@media print {
+    /* Oculta todo lo que no sea el área de caja/ticket */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Reemplaza con el ID o clase exacta del contenedor de tu ticket o zona de cobro */
+    #contenedorTicket, #contenedorTicket * {
+        visibility: visible;
+    }
+    
+    @media print {
+    .menu-bar, .action-buttons, .btn-cobrar, .scanner-box, .right-actions, .departments-grid {
+        display: none !important;
+    }
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+    .table-container {
+        width: 100%;
+    }
+}
+    #contenedorTicket {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+th {
+    background-color: var(--primary-color) !important;
+    color: white;
+    padding: 7px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 13px;
+}
+
+td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eef3f9;
+}
+
+tbody tr:hover {
+    background-color: #f4f8fc;
+}
+
+.tabla-ticket th, .tabla-ticket td, 
+.table-responsive td, .table-responsive th {
+    padding: 3px 6px !important;
+    font-size: 0.8rem !important;
+}
+
+/* Botones de acción de la tabla */
+.action-buttons, .acciones-ticket {
+    display: flex;
+    gap: 6px;
+    margin: 2px 0 8px 0 !important;
+}
+
+.action-buttons button, .acciones-ticket button {
+    background-color: #ffffff;
+    border: 1px solid #b3d1ff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--primary-color);
+    transition: all 0.2s;
+}
+
+.action-buttons button:hover, .acciones-ticket button:hover { 
+    background-color: var(--bg-container); 
+    border-color: var(--primary-color);
+}
+
+/* Botones de departamentos / accesos rápidos */
+.departments-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.btn-dept {
+    background-color: #ffffff;
+    border: 1px solid #b3d1ff;
+    padding: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: var(--primary-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.btn-dept:hover { 
+    background-color: var(--bg-container); 
+    border-color: var(--primary-color);
+}
+
+/* Paneles inferiores (Comprobante y Cliente) */
+.bottom-card, .datos-comprobante {
+    background: #ffffff;
+    border: 1px solid #b3d1ff;
+    border-radius: 6px;
+    padding: 4px 8px !important;
+    margin-top: 2px !important;
+    margin-bottom: 3px;
+    font-size: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+.bottom-card h4 {
+    margin: 0 0 3px 0;
+    color: var(--primary-color);
+    font-size: 12px;
+    border-bottom: 1px solid #eef3f9;
+    padding-bottom: 2px;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1px;
+    align-items: center;
+}
+
+.form-row label { 
+    font-weight: bold; 
+    color: #444; 
+}
+
+.form-row input, .form-row select, .datos-comprobante input, .datos-comprobante select {
+    padding: 4px 6px;
+    font-size: 12px;
+    border: 1px solid #99c2ff;
+    border-radius: 4px;
+    background-color: #fafbfc;
+}
+
+/* ==========================================
+   4. Panel Derecho (Caja Azul - Vida Plena)
+   ========================================== */
+.right-panel {
+    flex: 1; /* Ocupa el panel lateral derecho (la caja azul) */
+    min-width: 320px;
+    background: linear-gradient(135deg, #0d274f 0%, #1a4b8c 100%);
+    border-radius: 6px;
+    padding: 12px !important;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    gap: 10px !important;
+}
+
+.panel-medio-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: auto 0;
+}
+
+.product-image-container {
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-image-container img {
+    width: 110px !important;
+    height: 110px !important;
+    max-height: none !important;
+    display: block;
+    margin: 0 auto 4px auto;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+}
+
+.product-image-container span {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #fff;
+    margin-top: 4px;
+    display: block;
+    text-align: center;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.totals-section {
+    background: #123566;
+    border-radius: 6px;
+    padding: 10px;
+    text-align: right;
+    flex: 1;
+}
+
+.totals-section .sub { 
+    font-size: 15px !important; 
+    color: #b3d1ff !important; 
+}
+
+.totals-section .tot { 
+    font-size: 38px !important; 
+    font-weight: bold !important; 
+    color: #79dfa4 !important; /* Destello verde clínico claro para totales */
+    margin: 4px 0 !important; 
+    display: block !important;
+    line-height: 1.1 !important;
+}
+
+.btn-cobrar {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+    border: none;
+    width: 100%;
+    padding: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    transition: background 0.2s;
+}
+
+.btn-cobrar:hover { 
+    background-color: #219653 !important; 
+}
+
+.right-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.right-actions button {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.right-actions button:hover { 
+    background-color: rgba(255, 255, 255, 0.2); 
+}
+
+/* ==========================================
+   5. Pantalla de Artículos (productos.html)
+   ========================================== */
+.productos-wrapper {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 15px;
+    align-items: start;
+}
+
+.card-form, .card-table {
+    background: #ffffff;
+    border: 1px solid #b3d1ff;
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+.card-form h4 {
+    margin-top: 0;
+    color: var(--primary-color);
+    border-bottom: 1px solid #eef3f9;
+    padding-bottom: 6px;
+    font-size: 15px;
+}
+
+.form-group {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.form-group label {
+    font-weight: bold;
+    font-size: 12px;
+    color: #333;
+}
+
+.form-group input, .form-group select {
+    padding: 7px;
+    border: 1px solid #99c2ff;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: #fafbfc;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-group input:focus, .form-group select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 3px rgba(26, 75, 140, 0.3);
+}
+
+.form-row-duo {
+    display: flex;
+    gap: 8px;
+}
+
+.form-row-duo .form-group {
+    flex: 1;
+}
+
+.precio-final-box {
+    background-color: var(--bg-container);
+    border: 1px dashed #99c2ff;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.precio-final-box span {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.btn-guardar {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 9px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 3px;
+}
+
+.btn-guardar:hover { 
+    background-color: var(--primary-hover); 
+}
+
+.table-container-prod {
+    max-height: 380px;
+    overflow-y: auto;
+    border: 1px solid #eef3f9;
+    border-radius: 4px;
+}
+
+/* ==========================================
+   6. Pantalla de Compras (compras.html)
+   ========================================== */
+.compras-wrapper {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 15px;
+    align-items: start;
+}
+
+.table-container-compras {
+    max-height: 380px;
+    overflow-y: auto;
+    border: 1px solid #eef3f9;
+    border-radius: 4px;
+}
+
+/* ==========================================
+   7. Botones Generales de Tablas y Utilidades
+   ========================================== */
+td .btn-editar, 
+td .btn-eliminar {
+    padding: 3px 6px;
+    font-size: 11px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-right: 3px;
+}
+
+td .btn-editar {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    border-color: #bbdefb;
+}
+
+td .btn-editar:hover {
+    background-color: #bbdefb;
+}
+
+td .btn-eliminar {
+    background-color: #ffebee;
+    color: #c62828;
+    border-color: #ffcdd2;
+    font-weight: bold;
+}
+
+td .btn-eliminar:hover {
+    background-color: #ffcdd2;
+}
+
+.btn-volver {
+    padding: 6px 12px; 
+    background: var(--bg-container); 
+    border: 1px solid #99c2ff; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+.btn-volver:hover {
+    background: #d8e6f6;
+}
