@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const db = require('./database');
 const arcaService = require('./arca.service');
@@ -82,15 +81,7 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Configuración de archivos estáticos del Frontend (Vite)
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// 4. Ruta comodín para SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-/// 5. Inicialización del Servidor
+/// 3. Inicialización limpia del Servidor para Render
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
