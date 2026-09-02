@@ -1,196 +1,97 @@
-console.log('--- INICIANDO SERVIDOR BACKEND VIDA PLENA ---');
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
-const sqlite3 = require('sqlite3').verbose();
-require('dotenv').config();
+
+const db = require('./database');
+const arcaService = require('./arca.service');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// 1. Determinar ruta de la base de datos
-let dbPath;
-let ipcMain;
+// 1. Endpoint real para obtener las ventas del día desde SQLite
+app.get('/api/ventas/hoy', (req, res) => {
+    try {
+        const hoy = new Date().toISOString().split('T')[0];
+        
+        const stmt = db.prepare(`SELECT * FROM ventas WHERE DATE(fecha) = ?`);
+        const ventasDelDia = stmt.all(hoy);
 
-try {
-  const electron = require('electron');
-  if (electron.app) {
-    dbPath = path.join(electron.app.getPath('userData'), 'database.db');
-  }
-  ipcMain = electron.ipcMain;
-} catch (e) {}
+        const totalVendido = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
+        const cantTickets = ventasDelDia.length;
+        const ticketPromedio = cantTickets > 0 ? totalVendido / cantTickets : 0;
 
-if (!dbPath) {
-  const appData = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share');
-  const userDataDir = path.join(appData, 'vida-plena');
-  if (!fs.existsSync(userDataDir)) {
-    fs.mkdirSync(userDataDir, { recursive: true });
-  }
-  dbPath = path.join(userDataDir, 'database.db');
-}
+        res.json({
+            ventas: ventasDelDia,
+            totalVendido,
+            cantTickets,
+            ticketPromedio
+        });
+    } catch (error) {
+        console.error("Error al consultar las ventas:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
 
-console.log('Ruta de DB resuelta:', dbPath);
+// 2. Endpoint para emisión real de Nota de Crédito mediante ARCA
+app.post('/api/nota-credito', async (req, res) => {
+    try {
+        const { total, condicionIva, cuitCliente, facturaOriginal, percepcionArba, tipoComprobante } = req.body;
 
-// 2. Inicializar SQLite
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error al conectar la Base de Datos:', err.message);
-  } else {
-    console.log('Base de Datos conectada con éxito.');
-
-    db.run('PRAGMA journal_mode = WAL;');
-    db.run('PRAGMA synchronous = NORMAL;');
-
-    db.serialize(() => {
-      db.run(`CREATE TABLE IF NOT EXISTS productos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo_barras TEXT,
-        nombre TEXT,
-        precio REAL DEFAULT 0,
-        stock INTEGER DEFAULT 0,
-        categoria TEXT
-      );`);
-
-      db.run('CREATE INDEX IF NOT EXISTS idx_prod_nombre ON productos(nombre);');
-      db.run('CREATE INDEX IF NOT EXISTS idx_prod_codigo ON productos(codigo_barras);');
-
-      // Cargar producto de prueba si la tabla está vacía
-      db.get('SELECT COUNT(*) AS total FROM productos', [], (errRow, row) => {
-        if (!errRow && row && row.total === 0) {
-          db.run(`INSERT INTO productos (codigo_barras, nombre, precio, stock)
-                  VALUES ('12345', 'Silla de ruedas plegable', 150000, 5)`);
-          console.log('>>> Producto de prueba cargado (12345 - Silla de ruedas plegable) <<<');
+        if (!total || !facturaOriginal) {
+            return res.status(400).json({ ok: false, error: 'Faltan datos obligatorios para la Nota de Crédito.' });
         }
-      });
-    });
-  }
-});
 
-// 3. Función unificada de consulta de productos
-// NOTA: se alias-ean las columnas para que coincidan EXACTAMENTE
-// con lo que espera el frontend (main.js usa prod.codigo, prod.descripcion, prod.precio)
-function ejecutarBusquedaProductos(queryTerm, callback) {
-  const q = queryTerm ? String(queryTerm).trim() : '';
-  console.log(`[DB SEARCH] Buscando término: "${q}"`);
+        const datosNC = {
+            tipoComprobante: tipoComprobante || 'Nota de Crédito B',
+            condicionIva: condicionIva || 'Consumidor Final',
+            cuitCliente: cuitCliente || '',
+            total: Number(total),
+            percepcionArba: percepcionArba || 0,
+            comprobanteAsociado: {
+                tipoCbte: facturaOriginal.tipoCbte || 6,
+                puntoVenta: facturaOriginal.puntoVenta || 1,
+                numero: facturaOriginal.numero
+            }
+        };
 
-  const sql = `
-    SELECT
-      id,
-      codigo_barras AS codigo,
-      nombre AS descripcion,
-      precio,
-      stock,
-      categoria
-    FROM productos
-    WHERE nombre LIKE ? OR codigo_barras LIKE ?
-    LIMIT 30
-  `;
-  const param = `%${q}%`;
+        const resultadoArca = await arcaService.emitirNotaCredito(datosNC);
 
-  db.all(sql, [param, param], (err, rows) => {
-    if (err) {
-      console.error('[DB ERROR] Error en la búsqueda:', err.message);
-      return callback(err, []);
+        try {
+            const insert = db.prepare(`
+                INSERT INTO notas_credito (cae, vencimiento_cae, numero, punto_venta, total, fecha) 
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+            `);
+            insert.run(resultadoArca.cae, resultadoArca.vencimientoCae, resultadoArca.numeroComprobante, resultadoArca.puntoVenta, resultadoArca.importeTotal);
+        } catch (dbError) {
+            console.warn("La Nota de Crédito se autorizó en ARCA pero hubo un error al guardarla localmente:", dbError.message);
+        }
+
+        return res.json({
+            ok: true,
+            cae: resultadoArca.cae,
+            vencimientoCae: resultadoArca.vencimientoCae,
+            numeroComprobante: resultadoArca.numeroComprobante,
+            mensaje: "Nota de Crédito autorizada correctamente por ARCA."
+        });
+
+    } catch (error) {
+        console.error("Error en servidor al procesar Nota de Crédito con ARCA:", error);
+        return res.status(500).json({ ok: false, error: error.message });
     }
-    console.log(`[DB SEARCH] Resultados encontrados: ${rows.length}`);
-    callback(null, rows);
-  });
-}
-
-// 4. Endpoints API HTTP
-const handlerHTTP = (req, res) => {
-  const q = req.query.q || req.query.query || req.query.buscar || req.query.term || req.params.q || '';
-  ejecutarBusquedaProductos(q, (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Error en la base de datos' });
-    res.json(rows);
-  });
-};
-
-app.get('/api/productos/buscar', handlerHTTP);
-app.get('/api/productos', handlerHTTP);
-app.get('/api/productos/buscar/:q', handlerHTTP);
-app.get('/api/articulos', handlerHTTP);
-
-// Actualizar producto por ID
-app.put('/api/productos/:id', (req, res) => {
-  const { id } = req.params;
-  const { nombre, precio, precio_venta, stock, stock_actual } = req.body;
-
-  const valPrecio = precio_venta ?? precio ?? 0;
-  const valStock = stock_actual ?? stock ?? 0;
-
-  const sql = `UPDATE productos SET nombre = ?, precio = ?, stock = ? WHERE id = ?`;
-  db.run(sql, [nombre, valPrecio, valStock, id], function (err) {
-    if (err) {
-      console.error('[DB ERROR] Error al actualizar:', err.message);
-      return res.status(500).json({ error: 'Error al actualizar producto' });
-    }
-    res.json({ success: true, cambios: this.changes });
-  });
 });
 
-// Eliminar producto por ID
-app.delete('/api/productos/:id', (req, res) => {
-  const { id } = req.params;
+// 3. Configuración de archivos estáticos del Frontend (Vite)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-  const sql = `DELETE FROM productos WHERE id = ?`;
-  db.run(sql, [id], function (err) {
-    if (err) {
-      console.error('[DB ERROR] Error al eliminar:', err.message);
-      return res.status(500).json({ error: 'Error al eliminar producto' });
-    }
-    res.json({ success: true, eliminados: this.changes });
-  });
+// 4. Ruta comodín para SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// 5. Manejadores IPC (para Electron)
-if (ipcMain) {
-  const canalesBusqueda = [
-    'buscar-producto',
-    'buscar-productos',
-    'obtener-productos',
-    'get-productos',
-    'search-products'
-  ];
-
-  canalesBusqueda.forEach((canal) => {
-    ipcMain.handle(canal, async (event, term) => {
-      return new Promise((resolve) => {
-        ejecutarBusquedaProductos(term, (err, rows) => resolve(rows));
-      });
-    });
-
-    ipcMain.on(canal, (event, term) => {
-      ejecutarBusquedaProductos(term, (err, rows) => {
-        event.reply(`${canal}-respuesta`, rows);
-        event.returnValue = rows;
-      });
-    });
-  });
-}
-
-// 6. Servir la interfaz estática compilada desde frontend/dist
-const distPath = path.join(__dirname, '..', 'frontend', 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-  console.log('Frontend estático configurado correctamente.');
-} else {
-  console.warn('Atención: No se encontró la carpeta frontend/dist en:', distPath);
-}
-
-// 7. Iniciar Servidor Express
-app.listen(PORT, () => {
-  console.log(`Servidor Backend ejecutándose en puerto ${PORT}`);
+/// 5. Inicialización del Servidor
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor backend corriendo en el puerto ${PORT}`);
 });
-
-module.exports = { app, db };

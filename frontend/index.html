@@ -4,9 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Facturación - Caja 01</title>
-    <script type="module" src="./src/main.js"></script>
-    <!-- Librería Html5Qrcode para escaneo por cámara -->
-    <link rel="stylesheet" href="src/style.css" />
+    <link rel="stylesheet" href="./src/style.css" />
+    <script src="./src/main.js"></script>
     <style>
         .scanner-box {
             position: relative;
@@ -75,10 +74,13 @@
         <a href="ayuda.html">Ayuda</a>
     </div>
 
-    <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
-        <img src="./logo.png" alt="Vida Plena Logo" style="height: 80px; width: auto; object-fit: contain;">
-        <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
-    </div>
+   <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
+    <img src="./logo.png"
+         alt="Vida Plena Logo" 
+         style="height: 80px; width: auto; max-width: 250px; object-fit: contain; display: block;" 
+         onerror="this.onerror=null; this.style.display='none';">
+    <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
+</div>
 
     <div class="main-layout">
         <!-- Panel Izquierdo -->
@@ -97,7 +99,7 @@
                     <div>
                         <label for="inputNombre" style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 3px;">Nombre o Descripción</label>
                         <div class="search-field-container">
-                            <input type="text" id="inputNombre" placeholder="Buscar por nombre o haz clic para ver todos..." autocomplete="off">
+                            <input type="text" id="inputNombre" placeholder="Buscar por nombre..." autocomplete="off">
                             <div id="listaSugerencias" style="display: none;"></div>
                         </div>
                     </div>
@@ -108,7 +110,7 @@
                     </div>
 
                     <div>
-                        <button class="btn-buscar" id="btnBuscar" style="padding: 8px 12px; height: 35px; font-weight: bold;">Cargar</button>
+                        <button type="button" class="btn-buscar" id="btnBuscar" style="padding: 8px 12px; height: 35px; font-weight: bold; cursor: pointer;">Cargar</button>
                     </div>
                 </div>
             </div>
@@ -144,11 +146,11 @@
             
             <!-- Botones de Control de la Venta -->
             <div class="action-buttons">
-                <button id="btnQuitar">Quitar</button>
-                <button id="btnDescuento">Descuento</button>
-                <button id="btnRecargo">Recargo</button>
-                <button id="btnCambiarCantidad">Cambiar cantidad</button>
-                <button id="btnCambiarPrecio">Cambiar precio</button>
+                <button type="button" id="btnQuitar">Quitar</button>
+                <button type="button" id="btnDescuento">Descuento</button>
+                <button type="button" id="btnRecargo">Recargo</button>
+                <button type="button" id="btnCambiarCantidad">Cambiar cantidad</button>
+                <button type="button" id="btnCambiarPrecio">Cambiar precio</button>
             </div>
 
             <!-- Datos del Comprobante -->
@@ -186,7 +188,7 @@
                         <option value="Exento">Exento</option>
                     </select>
                     
-                    <button style="padding: 4px 10px; cursor: pointer; background: #e2ebd8; border: 1px solid #b5c4a1; border-radius: 3px;">Cambiar cliente</button>
+                    <button type="button" style="padding: 4px 10px; cursor: pointer; background: #e2ebd8; border: 1px solid #b5c4a1; border-radius: 3px;">Cambiar cliente</button>
                 </div>
             </div>
         </div>
@@ -201,19 +203,19 @@
                 
                 <div class="totals-section" style="padding: 12px;">
                     <div class="sub" style="font-size: 13px;">Subtotal</div>
-                    <div style="font-size: 18px; font-weight: bold;" id="lblSubtotal">$0,00</div>
+                    <div style="font-size: 18px; font-weight: bold;" id="lblSubtotal">$0.00</div>
                     <div class="sub" style="margin-top: 8px; font-size: 13px;">Descuento/Recargo</div>
                     <div style="font-size: 14px;" id="lblDescuento">$0,00</div>
                     <div class="sub" style="margin-top: 8px; font-size: 13px;">Total</div>
-                    <div class="tot" id="lblTotal" style="font-size: 26px;">$0,00</div>
+                    <div class="tot" id="lblTotal" style="font-size: 26px;">$0.00</div>
                 </div>
             </div>
 
             <div>
-                <button class="btn-cobrar" id="btnAbrirCobro" style="padding: 12px; font-size: 16px; width: 100%;">F2 - Cobrar</button>
+                <button type="button" class="btn-cobrar" id="btnAbrirCobro" style="padding: 12px; font-size: 16px; width: 100%;">F2 - Cobrar</button>
                 <div class="right-actions">
-                    <button id="btnNuevaVenta">F4-Nueva venta</button>
-                    <button onclick="window.location.href='productos.html'">F5-Ver precio</button>
+                    <button type="button" id="btnNuevaVenta">F4-Nueva venta</button>
+                    <button type="button" onclick="window.location.href='productos.html'">F5-Ver precio</button>
                 </div>
             </div>
 
@@ -238,60 +240,59 @@
                 <div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; font-weight: bold; display: block;">Efectivo</label>
-                        <input type="number" id="pagoEfectivo" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;" step="0.01">
+                        <input type="text" inputmode="decimal" id="pagoEfectivo" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; font-weight: bold; display: block;">Tarjeta de Crédito</label>
-                        <input type="number" id="pagoCredito" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;" step="0.01">
+                        <input type="text" inputmode="decimal" id="pagoCredito" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; font-weight: bold; display: block;">Cuenta Corriente</label>
-                        <input type="number" id="pagoCC" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;" step="0.01">
+                        <input type="text" inputmode="decimal" id="pagoCC" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; font-weight: bold; display: block;">Tarjeta de Débito</label>
-                        <input type="number" id="pagoDebito" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;" step="0.01">
+                        <input type="text" inputmode="decimal" id="pagoDebito" placeholder="0.00" style="width: 100%; padding: 6px; border: 1px solid #ccc;">
                     </div>
                 </div>
 
                 <div style="background: #333; color: white; padding: 15px; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-around;">
                     <div>
                         <span style="font-size: 12px; color: #aaa;">Total a pagar</span>
-                        <div id="lblTotalPagar" style="font-size: 22px; font-weight: bold; color: #4cd137;">$ 0,00</div>
+                        <div id="lblTotalPagar" style="font-size: 22px; font-weight: bold; color: #4cd137;">$ 0.00</div>
                     </div>
                     <div>
                         <span style="font-size: 12px; color: #aaa;">Total pagado</span>
-                        <div id="lblTotalPagado" style="font-size: 22px; font-weight: bold; color: #4cd137;">$ 0,00</div>
+                        <div id="lblTotalPagado" style="font-size: 22px; font-weight: bold; color: #4cd137;">$ 0.00</div>
                     </div>
                     <div>
                         <span style="font-size: 12px; color: #aaa;">Restan pagar</span>
-                        <div id="lblRestan" style="font-size: 22px; font-weight: bold; color: #ff4d4d;">$ 0,00</div>
+                        <div id="lblRestan" style="font-size: 22px; font-weight: bold; color: #ff4d4d;">$ 0.00</div>
                     </div>
                 </div>
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="btnCerrarCobro" style="padding: 8px 15px; background: #ccc; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Cancelar</button>
-                <button id="btnProcesarPago" style="padding: 8px 15px; background: #1f6f43; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Facturar y Cobrar</button>
+                <button type="button" id="btnCerrarCobro" style="padding: 8px 15px; background: #ccc; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Cancelar</button>
+                <button type="button" id="btnProcesarPago" style="padding: 8px 15px; background: #1f6f43; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Facturar y Cobrar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Genérico de Entrada de Datos -->
+    <!-- Modal Genérico de Entrada de Datos (Cambiar cantidad / Cambiar precio / Descuento / Recargo) -->
     <div id="modalInput" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
         <div style="background: #fff; padding: 20px; border-radius: 8px; width: 320px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
             <h4 id="modalInputTitulo" style="margin-top: 0; color: #1f6f43; border-bottom: 2px solid #1f6f43; padding-bottom: 5px;">Modificar Dato</h4>
             <div style="margin: 15px 0;">
                 <label id="modalInputLabel" style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Ingrese el valor:</label>
-                <input type="number" id="modalInputValue" style="width: 100%; padding: 8px; font-size: 16px; box-sizing: border-box;" step="0.01" autofocus />
+                <input type="number" id="modalInputValue" style="width: 100%; padding: 8px; font-size: 16px; box-sizing: border-box;" step="0.01" />
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button id="modalInputBtnCancelar" style="padding: 6px 12px; background: #ccc; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
-                <button id="modalInputBtnAceptar" style="padding: 6px 12px; background: #1f6f43; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Aceptar</button>
+                <button type="button" id="modalInputBtnCancelar" style="padding: 6px 12px; background: #ccc; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
+                <button type="button" id="modalInputBtnAceptar" style="padding: 6px 12px; background: #1f6f43; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Aceptar</button>
             </div>
         </div>
     </div>
-    
 
 </body>
 </html>

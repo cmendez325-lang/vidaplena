@@ -85,6 +85,16 @@
             background: #d1e1c2;
         }
 
+        .btn-nc {
+            background: #fcdad7;
+            border-color: #e6b0aa;
+            color: #922b21;
+        }
+
+        .btn-nc:hover {
+            background: #f5b7b1;
+        }
+
         /* --- ESTILOS EXCLUSIVOS PARA IMPRESIÓN --- */
         @media print {
             .menu-bar, 
@@ -137,7 +147,7 @@
 
     <!-- Encabezado con Logo -->
     <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px;">
-        <img src="./logo.png" alt="Vida Plena Logo" style="height: 60px; width: auto; object-fit: contain;">
+       <img src="./logo.png" alt="Vida Plena Logo" style="height: 60px; width: auto; object-fit: contain;">
         <h3 style="margin: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
     </div>
 
@@ -244,7 +254,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             cargarVentasDelDia();
 
-            // Evento para Imprimir Cierre Diario
             document.getElementById('btnExportarCierre').addEventListener('click', () => {
                 window.print();
             });
@@ -270,6 +279,7 @@
                     <td class="no-print">
                         <button class="btn-accion" onclick="verTicket(${index})">Ver</button>
                         <button class="btn-accion" onclick="imprimirTicketDirecto(${index})">🖨️ Imprimir</button>
+                        <button class="btn-accion btn-nc" onclick="emitirNC(${index})">Anular / NC</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -285,7 +295,7 @@
             `;
 
             let detalleHTML = '';
-            venta.lista.forEach(i => {
+            (venta.lista || []).forEach(i => {
                 detalleHTML += `${i.cant}x ${i.desc}<br><span style="float:right;">$ ${fmt(i.cant * i.precio)}</span><br>`;
             });
             document.getElementById('ticketModalDetalle').innerHTML = detalleHTML;
@@ -299,14 +309,59 @@
         }
 
         function imprimirModalTicket() {
+            const contenidoOriginal = document.body.innerHTML;
+            const contenidoTicket = document.getElementById('contenidoTicketImprimir').innerHTML;
+            
+            document.body.innerHTML = `
+                <div style="font-family: monospace; font-size: 13px; padding: 20px; max-width: 300px; margin: 0 auto;">
+                    ${contenidoTicket}
+                </div>
+            `;
             window.print();
+            document.body.innerHTML = contenidoOriginal;
+            location.reload(); 
         }
 
         function imprimirTicketDirecto(index) {
             verTicket(index);
             setTimeout(() => {
-                window.print();
+                imprimirModalTicket();
             }, 200);
+        }
+
+        async function emitirNC(index) {
+            const venta = ventasDelDia[index];
+            if (!confirm(`¿Confirmás la emisión de la Nota de Crédito para el Ticket N° ${venta.id}?`)) return;
+
+            try {
+                const res = await fetch('http://localhost:3000/api/nota-credito', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        total: venta.total,
+                        tipoComprobante: 'Nota de Crédito B',
+                        condicionIva: venta.condicionIva || 'Consumidor Final',
+                        cuitCliente: venta.cuitCliente || '',
+                        facturaOriginal: {
+                            tipoCbte: venta.tipoCbteCode || 6,
+                            puntoVenta: venta.puntoVenta || 1,
+                            numero: venta.numeroComprobante || venta.id
+                        }
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    alert(`Nota de Crédito emitida correctamente.\nCAE: ${data.cae}\nN° Comprobante: ${data.numeroComprobante}`);
+                    cargarVentasDelDia();
+                } else {
+                    alert('Error de ARCA: ' + data.error);
+                }
+            } catch (err) {
+                console.error('Error al emitir Nota de Crédito:', err);
+                alert('Ocurrió un error al intentar comunicar con el servidor.');
+            }
         }
     </script>
 </body>

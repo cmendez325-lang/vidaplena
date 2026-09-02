@@ -1,51 +1,69 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-
-// Arranca el backend (Express + SQLite) en el mismo proceso de Electron.
-// backend/server.js ya detecta que corre dentro de Electron (require('electron'))
-// y expone los endpoints IPC además de levantar el servidor HTTP en el puerto 3001.
-require('./backend/server.js');
+const { fork } = require('child_process');
 
 let mainWindow;
+let serverProcess = null;
+
+function startBackendServer() {
+    const serverPath = path.join(__dirname, 'backend', 'server.js');
+    
+    // Lanzamos el servidor Express en un proceso hijo independiente
+    serverProcess = fork(serverPath, [], {
+        silent: false,
+        env: Object.assign({}, process.env, { PORT: 3000 })
+    });
+
+    serverProcess.on('error', (err) => {
+        console.error('Error en el proceso del backend:', err);
+    });
+}
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1000,
-    minHeight: 700,
-    icon: path.join(__dirname, 'frontend', 'public', 'logo.png'),
-    webPreferences: {
-      preload: path.join(__dirname, 'backend', 'preload.js'),
-      contextIsolation: false,
-      nodeIntegration: false,
-      sandbox: false
-    }
-  });
+    startBackendServer();
 
-  // Carga la versión compilada del frontend (generada con "npx vite build" en /frontend)
-  mainWindow.loadFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
+    mainWindow = new BrowserWindow({
+        width: 1400,
+        height: 900,
+        minWidth: 1000,
+        minHeight: 700,
+        autoHideMenuBar: true,
+        icon: path.join(__dirname, 'frontend', 'public', 'logo.png'),
+        webPreferences: {
+            preload: path.join(__dirname, 'backend', 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: false
+        }
+    });
 
-  // Descomentar para depurar con DevTools abiertas automáticamente:
-  // mainWindow.webContents.openDevTools();
+    mainWindow.setMenu(null);
+    mainWindow.loadFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
 }
 
 app.whenReady().then(() => {
-  createWindow();
+    createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
+    });
+});
+
+app.on('will-quit', () => {
+    // Matamos el proceso del servidor al salir de la aplicación
+    if (serverProcess) {
+        serverProcess.kill();
     }
-  });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });

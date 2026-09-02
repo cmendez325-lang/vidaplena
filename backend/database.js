@@ -1,56 +1,97 @@
-const Database = require('better-sqlite3');
+const express = require('express');
+const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 
-// 1. Determinar la ruta de la base de datos
-let dbPath;
-try {
-  const { app } = require('electron');
-  if (app) {
-    dbPath = path.join(app.getPath('userData'), 'database.db');
-  }
-} catch (e) {}
+const db = require('./database');
+const arcaService = require('./arca.service');
 
-if (!dbPath) {
-  const appData = process.env.APPDATA || process.env.HOME;
-  const userDataDir = path.join(appData, 'vida-plena');
-  if (!fs.existsSync(userDataDir)) {
-    fs.mkdirSync(userDataDir, { recursive: true });
-  }
-  dbPath = path.join(userDataDir, 'database.db');
-}
+const app = express();
 
-// 2. Determinar la ubicación del archivo binario .node
-const options = {};
-if (process.mainModule && process.mainModule.filename.includes('app.asar')) {
-  const unpackedNative = path.join(
-    process.resourcesPath,
-    'app.asar.unpacked',
-    'node_modules',
-    'better-sqlite3',
-    'build',
-    'Release',
-    'better_sqlite3.node'
-  );
+app.use(express.json());
+app.use(cors());
 
-  const extraResourceNative = path.join(
-    process.resourcesPath,
-    'node_modules',
-    'better-sqlite3',
-    'build',
-    'Release',
-    'better_sqlite3.node'
-  );
+// 1. Endpoint real para obtener las ventas del día desde SQLite
+app.get('/api/ventas/hoy', (req, res) => {
+    try {
+        const hoy = new Date().toISOString().split('T')[0];
+        
+        const stmt = db.prepare(`SELECT * FROM ventas WHERE DATE(fecha) = ?`);
+        const ventasDelDia = stmt.all(hoy);
 
-  if (fs.existsSync(unpackedNative)) {
-    options.nativeBinding = unpackedNative;
-  } else if (fs.existsSync(extraResourceNative)) {
-    options.nativeBinding = extraResourceNative;
-  }
-}
+        const totalVendido = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
+        const cantTickets = ventasDelDia.length;
+        const ticketPromedio = cantTickets > 0 ? totalVendido / cantTickets : 0;
 
-// 3. Crear y exportar la instancia
-const db = new Database(dbPath, options);
-console.log('Base de datos conectada en:', dbPath);
+        res.json({
+            ventas: ventasDelDia,
+            totalVendido,
+            cantTickets,
+            ticketPromedio
+        });
+    } catch (error) {
+        console.error("Error al consultar las ventas:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
 
-module.exports = db;
+// 2. Endpoint para emisión real de Nota de Crédito mediante ARCA
+app.post('/api/nota-credito', async (req, res) => {
+    try {
+        const { total, condicionIva, cuitCliente, facturaOriginal, percepcionArba, tipoComprobante } = req.body;
+
+        if (!total || !facturaOriginal) {
+            return res.status(400).json({ ok: false, error: 'Faltan datos obligatorios para la Nota de Crédito.' });
+        }
+
+        const datosNC = {
+            tipoComprobante: tipoComprobante || 'Nota de Crédito B',
+            condicionIva: condicionIva || 'Consumidor Final',
+            cuitCliente: cuitCliente || '',
+            total: Number(total),
+            percepcionArba: percepcionArba || 0,
+            comprobanteAsociado: {
+                tipoCbte: facturaOriginal.tipoCbte || 6,
+                puntoVenta: facturaOriginal.puntoVenta || 1,
+                numero: facturaOriginal.numero
+            }
+        };
+
+        const resultadoArca = await arcaService.emitirNotaCredito(datosNC);
+
+        try {
+            const insert = db.prepare(`
+                INSERT INTO notas_credito (cae, vencimiento_cae, numero, punto_venta, total, fecha) 
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+            `);
+            insert.run(resultadoArca.cae, resultadoArca.vencimientoCae, resultadoArca.numeroComprobante, resultadoArca.puntoVenta, resultadoArca.importeTotal);
+        } catch (dbError) {
+            console.warn("La Nota de Crédito se autorizó en ARCA pero hubo un error al guardarla localmente:", dbError.message);
+        }
+
+        return res.json({
+            ok: true,
+            cae: resultadoArca.cae,
+            vencimientoCae: resultadoArca.vencimientoCae,
+            numeroComprobante: resultadoArca.numeroComprobante,
+            mensaje: "Nota de Crédito autorizada correctamente por ARCA."
+        });
+
+    } catch (error) {
+        console.error("Error en servidor al procesar Nota de Crédito con ARCA:", error);
+        return res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+// 3. Configuración de archivos estáticos del Frontend (Vite)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// 4. Ruta comodín para SPA (Redirige cualquier otra consulta al index.html del frontend)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// 5. Inicialización del Servidor con puerto dinámico y binding externo
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+});

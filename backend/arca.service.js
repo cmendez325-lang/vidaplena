@@ -1,16 +1,7 @@
-// backend/arca.service.js
-// Módulo de integración con ARCA (ex AFIP) usando afip.js (AfipSDK).
-// En homologación (testing) no hace falta certificado propio: afip.js
-// trae uno de prueba con el CUIT de testing 20409378472.
-// Cuando tu cliente te pase su certificado real, solo cambiás las
-// variables de entorno (ver .env.example más abajo) y pasa a producción.
-
 const Afip = require('@afipsdk/afip.js');
 
 const ES_PRODUCCION = process.env.ARCA_PRODUCCION === 'true';
 
-// En homologación, afip.js ignora cert/key y usa los suyos de prueba.
-// En producción, hay que pasarle el CUIT real y las rutas a los archivos.
 const afip = new Afip({
     CUIT: ES_PRODUCCION ? Number(process.env.ARCA_CUIT) : 20409378472,
     access_token: process.env.ARCA_ACCESS_TOKEN,
@@ -19,34 +10,33 @@ const afip = new Afip({
     key: ES_PRODUCCION ? process.env.ARCA_KEY_PATH : undefined,
 });
 
-/**
- * Mapea el tipo de comprobante del frontend ("Factura A", "Factura B", "Ticket Fiscal")
- * al código numérico que espera ARCA.
- */
 function mapearTipoComprobante(tipoTexto) {
     const mapa = {
         'Factura A': 1,
         'Factura B': 6,
-        'Ticket Fiscal': 6, // Se emite como Factura B para Consumidor Final
+        'Factura C': 11,
+        'Ticket Fiscal': 6,
     };
     return mapa[tipoTexto] || 6;
 }
 
-/**
- * Mapea la condición de IVA del cliente al código de "Doc Tipo" de ARCA.
- * Consumidor Final sin CUIT/DNI -> DocTipo 99 (Consumidor Final, sin identificar)
- */
-function mapearDocTipo(condicionIva) {
-    if (condicionIva === 'Responsable Inscripto' || condicionIva === 'Monotributo') {
-        return 80; // CUIT
-    }
+function mapearTipoNotaCredito(tipoTexto) {
+    const mapa = {
+        'Nota de Crédito A': 3,
+        'Nota de Crédito B': 8,
+        'Nota de Crédito C': 13,
+    };
+    return mapa[tipoTexto] || 8;
+}
+
+function mapearDocTipo(condicionIva, docNro) {
+    const docStr = String(docNro || '').replace(/\D/g, '');
+    if (docStr.length === 11) return 80; // CUIT
+    if (docStr.length === 8 || docStr.length === 7) return 96; // DNI
+    if (condicionIva === 'Responsable Inscripto' || condicionIva === 'Monotributo') return 80;
     return 99; // Consumidor Final sin identificar
 }
 
-/**
- * Mapea la condición de IVA del cliente al código "CondicionIVAReceptorId"
- * que exige ARCA desde la RG 5616/2024 en todo comprobante electrónico.
- */
 function mapearCondicionIvaReceptor(condicionIva) {
     const mapa = {
         'Responsable Inscripto': 1,
@@ -54,40 +44,34 @@ function mapearCondicionIvaReceptor(condicionIva) {
         'Consumidor Final': 5,
         'Monotributo': 6,
     };
-    return mapa[condicionIva] || 5; // Por defecto: Consumidor Final
+    return mapa[condicionIva] || 5;
 }
 
 /**
- * Solicita el CAE a ARCA para una venta.
- * @param {Object} venta
- * @param {number} venta.total - Importe total de la venta
- * @param {string} venta.tipoComprobante - "Factura A" | "Factura B" | "Ticket Fiscal"
- * @param {string} venta.condicionIva - Condición IVA del cliente
- * @param {string} [venta.cuitCliente] - CUIT del cliente (obligatorio si es Factura A o RI)
- * @param {number} [puntoVenta] - Punto de venta habilitado en ARCA
+ * Emite una Factura en ARCA
  */
 async function emitirComprobante(venta, puntoVenta = 1) {
     const tipoCbte = mapearTipoComprobante(venta.tipoComprobante);
-    const docTipo = mapearDocTipo(venta.condicionIva);
-    const docNro = docTipo === 99 ? 0 : (venta.cuitCliente || 0);
+    const docTipo = mapearDocTipo(venta.condicionIva, venta.cuitCliente);
+    const docNroRaw = String(venta.cuitCliente || '').replace(/\D/g, '');
+    const docNro = docTipo === 99 ? 0 : Number(docNroRaw || 0);
 
-    // Obtiene el próximo número de comprobante disponible
     const ultimoAutorizado = await afip.ElectronicBilling.getLastVoucher(puntoVenta, tipoCbte);
     const numeroComprobante = ultimoAutorizado + 1;
 
     const fechaHoy = new Date();
     const fechaCbte = fechaHoy.toISOString().slice(0, 10).replace(/-/g, '');
+    const percepcionArba = Math.round((venta.percepcionArba || 0) * 100) / 100;
 
-    // Importes: si es Factura B/C a Consumidor Final, el total ya incluye IVA (21%)
-    const importeTotal = Math.round(venta.total * 100) / 100;
-    const importeNeto = Math.round((importeTotal / 1.21) * 100) / 100;
-    const importeIva = Math.round((importeTotal - importeNeto) * 100) / 100;
+    let importeNeto = Math.round((venta.total / 1.21) * 100) / 100;
+    let importeIva = Math.round((venta.total - importeNeto) * 100) / 100;
+    let importeTotal = Math.round((venta.total + percepcionArba) * 100) / 100;
 
     const datosComprobante = {
         CantReg: 1,
         PtoVta: puntoVenta,
         CbteTipo: tipoCbte,
-        Concepto: 1, // Productos
+        Concepto: 1,
         DocTipo: docTipo,
         DocNro: docNro,
         CbteDesde: numeroComprobante,
@@ -98,14 +82,26 @@ async function emitirComprobante(venta, puntoVenta = 1) {
         ImpNeto: importeNeto,
         ImpOpEx: 0,
         ImpIVA: importeIva,
-        ImpTrib: 0,
+        ImpTrib: percepcionArba,
         MonId: 'PES',
         MonCotiz: 1,
         Iva: [
-            { Id: 5, BaseImp: importeNeto, Importe: importeIva } // 21%
+            { Id: 5, BaseImp: importeNeto, Importe: importeIva }
         ],
         CondicionIVAReceptorId: mapearCondicionIvaReceptor(venta.condicionIva),
     };
+
+    if (percepcionArba > 0) {
+        datosComprobante.Tributos = [
+            {
+                Id: 2,
+                Desc: 'Percepción IIBB ARBA',
+                BaseImp: importeNeto,
+                Alic: Math.round(((percepcionArba / importeNeto) * 100) * 100) / 100,
+                Importe: percepcionArba
+            }
+        ];
+    }
 
     const resultado = await afip.ElectronicBilling.createVoucher(datosComprobante);
 
@@ -115,7 +111,90 @@ async function emitirComprobante(venta, puntoVenta = 1) {
         numeroComprobante,
         puntoVenta,
         tipoComprobante: tipoCbte,
+        importeTotal
     };
 }
 
-module.exports = { emitirComprobante, mapearTipoComprobante, mapearDocTipo };
+/**
+ * Emite una Nota de Crédito vinculada a una Factura previa
+ */
+async function emitirNotaCredito(nc, puntoVenta = 1) {
+    const tipoCbte = mapearTipoNotaCredito(nc.tipoComprobante);
+    const docTipo = mapearDocTipo(nc.condicionIva, nc.cuitCliente);
+    const docNroRaw = String(nc.cuitCliente || '').replace(/\D/g, '');
+    const docNro = docTipo === 99 ? 0 : Number(docNroRaw || 0);
+
+    const ultimoAutorizado = await afip.ElectronicBilling.getLastVoucher(puntoVenta, tipoCbte);
+    const numeroComprobante = ultimoAutorizado + 1;
+
+    const fechaHoy = new Date();
+    const fechaCbte = fechaHoy.toISOString().slice(0, 10).replace(/-/g, '');
+    const percepcionArba = Math.round((nc.percepcionArba || 0) * 100) / 100;
+
+    const importeNeto = Math.round((nc.total / 1.21) * 100) / 100;
+    const importeIva = Math.round((nc.total - importeNeto) * 100) / 100;
+    const importeTotal = Math.round((nc.total + percepcionArba) * 100) / 100;
+
+    const datosComprobante = {
+        CantReg: 1,
+        PtoVta: puntoVenta,
+        CbteTipo: tipoCbte,
+        Concepto: 1,
+        DocTipo: docTipo,
+        DocNro: docNro,
+        CbteDesde: numeroComprobante,
+        CbteHasta: numeroComprobante,
+        CbteFch: parseInt(fechaCbte, 10),
+        ImpTotal: importeTotal,
+        ImpTotConc: 0,
+        ImpNeto: importeNeto,
+        ImpOpEx: 0,
+        ImpIVA: importeIva,
+        ImpTrib: percepcionArba,
+        MonId: 'PES',
+        MonCotiz: 1,
+        Iva: [
+            { Id: 5, BaseImp: importeNeto, Importe: importeIva }
+        ],
+        CondicionIVAReceptorId: mapearCondicionIvaReceptor(nc.condicionIva),
+        CbtesAsoc: [
+            {
+                Tipo: nc.comprobanteAsociado.tipoCbte,
+                PtoVta: nc.comprobanteAsociado.puntoVenta,
+                Nro: nc.comprobanteAsociado.numero
+            }
+        ]
+    };
+
+    if (percepcionArba > 0) {
+        datosComprobante.Tributos = [
+            {
+                Id: 2,
+                Desc: 'Percepción IIBB ARBA',
+                BaseImp: importeNeto,
+                Alic: Math.round(((percepcionArba / importeNeto) * 100) * 100) / 100,
+                Importe: percepcionArba
+            }
+        ];
+    }
+
+    const resultado = await afip.ElectronicBilling.createVoucher(datosComprobante);
+
+    return {
+        cae: resultado.CAE,
+        vencimientoCae: resultado.CAEFchVto,
+        numeroComprobante,
+        puntoVenta,
+        tipoComprobante: tipoCbte,
+        importeTotal
+    };
+}
+
+module.exports = { 
+    emitirComprobante, 
+    emitirNotaCredito,
+    mapearTipoComprobante, 
+    mapearTipoNotaCredito,
+    mapearDocTipo,
+    mapearCondicionIvaReceptor 
+};

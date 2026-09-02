@@ -5,8 +5,9 @@
     <title>Gestión de Artículos - Sistema de Facturación</title>
     <link rel="stylesheet" href="src/style.css" />
     
-    <!-- Carga de SheetJS mediante CDN oficial para evitar problemas con Vite -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Carga de SheetJS local (ya no depende de internet) -->
+   <script src="./xlsx.full.min.js"></script>
+  
 
     <style>
         body {
@@ -51,7 +52,7 @@
 
         .card h3 {
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             font-size: 18px;
             color: #1a202c;
         }
@@ -122,6 +123,19 @@
         }
 
         .btn-verde:hover { background-color: #165e36; }
+        .btn-verde:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+        /* BARRA DE HERRAMIENTAS Y BOTONES */
+        .barra-herramientas {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            background-color: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
 
         .btn-excel {
             background-color: #0284c7;
@@ -139,10 +153,15 @@
 
         .btn-excel:hover { background-color: #0369a1; }
 
-        .btn-export {
-            background-color: #10b981;
-        }
+        .btn-export { background-color: #10b981; }
         .btn-export:hover { background-color: #059669; }
+
+        .btn-vaciar { 
+            background-color: #ef4444; 
+            color: white;
+            margin-left: auto;
+        }
+        .btn-vaciar:hover { background-color: #dc2626; }
 
         table {
             width: 100%;
@@ -190,6 +209,8 @@
 
         .btn-borrar { background-color: #ef4444; }
         .btn-borrar:hover { background-color: #dc2626; }
+
+        .stock-bajo { color: #dc2626; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -220,8 +241,8 @@
             
             <!-- Formulario -->
             <div class="card">
-                <h3>Nuevo Artículo</h3>
-                <input type="hidden" id="txtIndex" value="-1">
+                <h3 id="lblTituloFormulario">Nuevo Artículo</h3>
+                <input type="hidden" id="txtId" value="">
 
                 <div class="form-group">
                     <label>Código de Barras</label>
@@ -233,9 +254,15 @@
                     <input type="text" id="txtNombre" placeholder="Ej. Catéteres Especializados">
                 </div>
 
-                <div class="form-group">
-                    <label>Costo Neto ($)</label>
-                    <input type="number" id="txtCosto" step="0.01" value="0.00" oninput="calcularPrecioFinal()">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Costo Neto ($)</label>
+                        <input type="number" id="txtCosto" step="0.01" value="0.00" oninput="calcularPrecioFinal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock</label>
+                        <input type="number" id="txtStock" step="1" value="0">
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -275,23 +302,28 @@
                     </select>
                 </div>
 
-                <button type="button" class="btn-verde" onclick="guardarProducto()">Guardar Producto</button>
+                <button type="button" class="btn-verde" id="btnGuardar" onclick="guardarProducto()">Guardar Producto</button>
             </div>
 
             <!-- Tabla + Excel + Buscador -->
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">Base de Datos de Productos</h3>
+                <h3>Base de Datos de Productos</h3>
+
+                <!-- Barra de Botones de Acción -->
+                <div class="barra-herramientas">
+                    <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;" onchange="cargarExcel(event)">
                     
-                    <div style="display: flex; gap: 8px;">
-                        <input type="file" id="inputExcel" accept=".xlsx, .xls, .csv" style="display: none;" onchange="cargarExcel(event)">
-                        <button type="button" class="btn-excel btn-export" onclick="exportarExcel()">
-                            📥 Exportar
-                        </button>
-                        <button type="button" class="btn-excel" onclick="document.getElementById('inputExcel').click()">
-                            📊 Importar
-                        </button>
-                    </div>
+                    <button type="button" class="btn-excel btn-export" onclick="exportarExcel()">
+                        📥 Exportar Excel
+                    </button>
+                    
+                    <button type="button" class="btn-excel" onclick="document.getElementById('inputExcel').click()">
+                        📊 Importar Excel
+                    </button>
+
+                    <button type="button" class="btn-excel btn-vaciar" onclick="vaciarTodo()">
+                        🗑️ Vaciar Todo
+                    </button>
                 </div>
 
                 <!-- Input Buscador -->
@@ -307,6 +339,7 @@
                                 <th style="width: 110px;">Código</th>
                                 <th>Descripción</th>
                                 <th>Depto.</th>
+                                <th style="text-align: right; width: 70px;">Stock</th>
                                 <th style="text-align: right; width: 100px;">Venta</th>
                                 <th style="text-align: center; width: 80px;">Acción</th>
                             </tr>
@@ -323,7 +356,9 @@
     </div>
 
     <script>
-        let productos = JSON.parse(localStorage.getItem('listaProductos')) || [];
+       const API_BASE = 'http://127.0.0.1:3001/api';
+
+        let productos = [];       // se llena desde la API, no desde localStorage
         let base64ImageTemp = '';
 
         function formatearMoneda(monto) {
@@ -353,18 +388,75 @@
             }
         }
 
+        // ---------- Comunicación con la API ----------
+        async function cargarProductosAPI() {
+            try {
+                const resp = await fetch(`${API_BASE}/productos`);
+                if (!resp.ok) throw new Error('Respuesta no OK del servidor');
+                productos = await resp.json();
+                renderizarTabla();
+            } catch (err) {
+                console.error('Error al cargar productos:', err);
+                const tbody = document.getElementById('tablaProductos');
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#c0392b; padding:20px;">
+                    No se pudo conectar con el servidor local (puerto 3001). Verificá que la app esté corriendo bien.
+                </td></tr>`;
+            }
+        }
+
+        async function crearProductoAPI(prodObj) {
+            const resp = await fetch(`${API_BASE}/productos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prodObj)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al crear producto');
+            return data;
+        }
+
+        async function actualizarProductoAPI(id, prodObj) {
+            const resp = await fetch(`${API_BASE}/productos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prodObj)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al actualizar producto');
+            return data;
+        }
+
+        async function borrarProductoAPI(id) {
+            const resp = await fetch(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al eliminar producto');
+            return data;
+        }
+
         function cargarExcel(event) {
             let file = event.target.files[0];
             if (!file) return;
 
             if (typeof XLSX === 'undefined') {
-                alert("Error crítico: La librería de Excel (SheetJS) no se ha cargado correctamente en la aplicación.");
+                alert("Error crítico: La librería de Excel (SheetJS) no se ha cargado correctamente.");
                 event.target.value = '';
                 return;
             }
 
+            if (productos.length > 0) {
+                let seguir = confirm(
+                    `Ya tenés ${productos.length} producto(s) cargado(s).\n\n` +
+                    `Aceptar = SUMAR los del Excel a los que ya existen.\n` +
+                    `Cancelar = no importar nada.`
+                );
+                if (!seguir) {
+                    event.target.value = '';
+                    return;
+                }
+            }
+
             let reader = new FileReader();
-            reader.onload = function (e) {
+            reader.onload = async function (e) {
                 try {
                     let data = new Uint8Array(e.target.result);
                     let workbook = XLSX.read(data, { type: 'array' });
@@ -376,26 +468,51 @@
                         return;
                     }
 
-                    let nuevosProductos = jsonExcel.map(fila => {
-                        let imgVal = String(fila['Imagen'] || fila['imagen'] || '').trim();
+                    let codigosExistentes = new Set(productos.map(p => String(p.codigo)));
+                    let creados = 0;
+                    let duplicadosOmitidos = 0;
+                    let errores = 0;
 
-                        return {
-                            idImg: imgVal,
-                            codigo: String(fila['Codigo'] || fila['Código'] || fila['codigo'] || 'S/C'),
+                    for (const fila of jsonExcel) {
+                        const codigo = String(fila['Codigo'] || fila['Código'] || fila['codigo'] || 'S/C');
+
+                        if (codigosExistentes.has(codigo)) {
+                            duplicadosOmitidos++;
+                            continue;
+                        }
+
+                        const prodObj = {
+                            codigo: codigo,
                             descripcion: fila['Descripcion'] || fila['Descripción'] || fila['descripcion'] || 'Sin descripción',
-                            depto: (fila['Depto'] || fila['Departamento'] || fila['Categoria'] || 'VARIOS').toUpperCase(),
-                            precio: parseFloat(fila['Precio'] || fila['Venta'] || fila['precio'] || 0)
+                            categoria: (fila['Depto'] || fila['Departamento'] || fila['Categoria'] || 'VARIOS').toUpperCase(),
+                            costo: parseFloat(fila['Costo'] || fila['costo'] || 0),
+                            ganancia: parseFloat(fila['Ganancia'] || fila['ganancia'] || 30),
+                            iva: parseFloat(fila['IVA'] || fila['iva'] || 21),
+                            precio: parseFloat(fila['Precio'] || fila['Venta'] || fila['precio'] || 0),
+                            stock: parseInt(fila['Stock'] || fila['stock'] || 0),
+                            imagen: String(fila['Imagen'] || fila['imagen'] || '').trim()
                         };
-                    });
 
-                    productos = productos.concat(nuevosProductos);
-                    localStorage.setItem('listaProductos', JSON.stringify(productos));
-                    renderizarTabla();
-                    alert(`¡Se importaron ${nuevosProductos.length} productos desde el Excel!`);
+                        try {
+                            await crearProductoAPI(prodObj);
+                            codigosExistentes.add(codigo);
+                            creados++;
+                        } catch (errCrear) {
+                            console.error('Error al crear producto del Excel:', errCrear);
+                            errores++;
+                        }
+                    }
+
+                    await cargarProductosAPI();
+
+                    let mensaje = `¡Se importaron ${creados} producto(s) nuevo(s) desde el Excel!`;
+                    if (duplicadosOmitidos > 0) mensaje += `\n(${duplicadosOmitidos} se omitieron por tener un código ya existente).`;
+                    if (errores > 0) mensaje += `\n(${errores} fallaron al guardarse, revisá la consola).`;
+                    alert(mensaje);
                 } catch (error) {
                     alert("Ocurrió un error al procesar el archivo Excel: " + error.message);
                 }
-                
+
                 event.target.value = '';
             };
             reader.readAsArrayBuffer(file);
@@ -414,9 +531,13 @@
             let data = productos.map(p => ({
                 "Código": p.codigo,
                 "Descripción": p.descripcion,
-                "Departamento": p.depto,
+                "Departamento": p.categoria,
+                "Costo": p.costo || 0,
+                "Ganancia %": p.ganancia || 0,
+                "IVA %": p.iva || 0,
                 "Precio": p.precio,
-                "Imagen": p.idImg
+                "Stock": p.stock || 0,
+                "Imagen": p.imagen
             }));
 
             let worksheet = XLSX.utils.json_to_sheet(data);
@@ -425,12 +546,16 @@
             XLSX.writeFile(workbook, "Productos_VidaPlena.xlsx");
         }
 
-        function guardarProducto() {
+        async function guardarProducto() {
             let codigo = document.getElementById('txtCodigo').value.trim();
             let descripcion = document.getElementById('txtNombre').value.trim();
             let depto = document.getElementById('selectDepto').value;
+            let costo = parseFloat(document.getElementById('txtCosto').value) || 0;
+            let ganancia = parseFloat(document.getElementById('txtGanancia').value) || 0;
+            let iva = parseFloat(document.getElementById('selectIva').value) || 0;
+            let stock = parseInt(document.getElementById('txtStock').value) || 0;
             let precio = calcularPrecioFinal();
-            let index = parseInt(document.getElementById('txtIndex').value);
+            let idActual = document.getElementById('txtId').value;
 
             if (!codigo || !descripcion) {
                 alert("Por favor ingresá el código y la descripción del producto.");
@@ -438,95 +563,162 @@
             }
 
             let prodObj = {
-                idImg: base64ImageTemp,
                 codigo: codigo,
                 descripcion: descripcion,
-                depto: depto,
-                precio: precio
+                categoria: depto,
+                costo: costo,
+                ganancia: ganancia,
+                iva: iva,
+                precio: precio,
+                stock: stock,
+                imagen: base64ImageTemp
             };
 
-            if (index === -1) {
-                productos.push(prodObj);
-            } else {
-                if (!base64ImageTemp) prodObj.idImg = productos[index].idImg;
-                productos[index] = prodObj;
-                document.getElementById('txtIndex').value = "-1";
+            const btnGuardar = document.getElementById('btnGuardar');
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+
+            try {
+                if (!idActual) {
+                    // Producto nuevo: si no se subió imagen nueva, va vacío
+                    await crearProductoAPI(prodObj);
+                } else {
+                    // Edición: si no se tocó el campo imagen, conservamos la que ya tenía
+                    if (!base64ImageTemp) {
+                        const existente = productos.find(p => p.id === parseInt(idActual));
+                        prodObj.imagen = existente ? existente.imagen : '';
+                    }
+                    await actualizarProductoAPI(idActual, prodObj);
+                }
+
+                await cargarProductosAPI();
+                vaciarFormulario();
+            } catch (err) {
+                console.error('Error al guardar producto:', err);
+                alert('No se pudo guardar el producto: ' + err.message);
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = idActual ? 'Actualizar Producto' : 'Guardar Producto';
             }
+        }
 
-            localStorage.setItem('listaProductos', JSON.stringify(productos));
+        function editarProducto(id) {
+            let p = productos.find(prod => prod.id === id);
+            if (!p) return;
 
+            document.getElementById('txtCodigo').value = p.codigo;
+            document.getElementById('txtNombre').value = p.descripcion;
+            document.getElementById('selectDepto').value = p.categoria || 'SALUD';
+            document.getElementById('txtCosto').value = p.costo !== undefined ? p.costo : 0;
+            document.getElementById('txtGanancia').value = p.ganancia !== undefined ? p.ganancia : 30;
+            document.getElementById('selectIva').value = p.iva !== undefined ? p.iva : 21;
+            document.getElementById('txtStock').value = p.stock !== undefined ? p.stock : 0;
+
+            document.getElementById('txtId').value = p.id;
+            document.getElementById('lblTituloFormulario').textContent = "Editar Artículo";
+            document.getElementById('btnGuardar').textContent = "Actualizar Producto";
+
+            base64ImageTemp = p.imagen || '';
+            calcularPrecioFinal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function vaciarFormulario() {
+            document.getElementById('txtId').value = "";
             document.getElementById('txtCodigo').value = '';
             document.getElementById('txtNombre').value = '';
             document.getElementById('txtCosto').value = '0.00';
+            document.getElementById('txtGanancia').value = '30';
+            document.getElementById('selectIva').value = '21';
+            document.getElementById('txtStock').value = '0';
             document.getElementById('fileImagen').value = '';
+            document.getElementById('lblTituloFormulario').textContent = "Nuevo Artículo";
+            document.getElementById('btnGuardar').textContent = "Guardar Producto";
             base64ImageTemp = '';
             calcularPrecioFinal();
-
-            renderizarTabla();
         }
 
-        function editarProducto(index) {
-            let p = productos[index];
-            document.getElementById('txtCodigo').value = p.codigo;
-            document.getElementById('txtNombre').value = p.descripcion;
-            document.getElementById('selectDepto').value = p.depto || 'SALUD';
-            document.getElementById('lblPrecioCalculado').textContent = formatearMoneda(p.precio);
-            document.getElementById('txtIndex').value = index;
-            base64ImageTemp = p.idImg || '';
+        async function borrarProducto(id) {
+            if (!confirm("¿Deseas eliminar este producto de la base de datos?")) return;
+
+            try {
+                await borrarProductoAPI(id);
+                await cargarProductosAPI();
+            } catch (err) {
+                console.error('Error al borrar producto:', err);
+                alert('No se pudo eliminar el producto: ' + err.message);
+            }
         }
 
-        function borrarProducto(index) {
-            if (confirm("¿Deseas eliminar este producto de la base de datos?")) {
-                productos.splice(index, 1);
-                localStorage.setItem('listaProductos', JSON.stringify(productos));
-                renderizarTabla();
+        async function vaciarTodo() {
+            if (productos.length === 0) {
+                alert("La base de datos ya está vacía.");
+                return;
+            }
+
+            if (!confirm("⚠️ ¿Estás seguro de que querés eliminar TODOS los productos de la base de datos? Esta acción no se puede deshacer.")) return;
+
+            try {
+                for (const p of productos) {
+                    await borrarProductoAPI(p.id);
+                }
+                await cargarProductosAPI();
+                vaciarFormulario();
+                alert("Se han eliminado todos los productos correctamente.");
+            } catch (err) {
+                console.error('Error al vaciar todo:', err);
+                alert('Ocurrió un error al eliminar algunos productos: ' + err.message);
+                await cargarProductosAPI();
             }
         }
 
         function renderizarTabla() {
             let tbody = document.getElementById('tablaProductos');
-            tbody.innerHTML = '';
-
             let filtro = document.getElementById('txtBuscador').value.toLowerCase();
-            
-            let productosFiltrados = productos.filter(p => 
-                p.codigo.toLowerCase().includes(filtro) ||
-                p.descripcion.toLowerCase().includes(filtro) ||
-                (p.depto && p.depto.toLowerCase().includes(filtro))
+
+            let productosFiltrados = productos.filter(p =>
+                (p.codigo || '').toLowerCase().includes(filtro) ||
+                (p.descripcion || '').toLowerCase().includes(filtro) ||
+                (p.categoria && p.categoria.toLowerCase().includes(filtro))
             );
 
             let imgPlaceholder = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m7.5 4.27 9 5.15'/><path d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'/><path d='m3.3 7 8.7 5 8.7-5'/><path d='M12 12v10'/></svg>`;
 
             if (productosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #718096; padding: 20px;">No se encontraron productos.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #718096; padding: 20px;">No se encontraron productos.</td></tr>`;
                 return;
             }
 
-            productosFiltrados.forEach((p) => {
-                let indexReal = productos.indexOf(p);
-                let tieneImagen = p.idImg && typeof p.idImg === 'string' && p.idImg.trim() !== '' && p.idImg !== 'S/I';
-                let imgSrc = tieneImagen ? p.idImg.trim() : imgPlaceholder;
+            let filasHtml = [];
 
-                tbody.innerHTML += `
+            productosFiltrados.forEach((p) => {
+                let tieneImagen = p.imagen && typeof p.imagen === 'string' && p.imagen.trim() !== '';
+                let imgSrc = tieneImagen ? p.imagen.trim() : imgPlaceholder;
+                let stockClase = (p.stock !== undefined && p.stock <= 3) ? 'stock-bajo' : '';
+
+                filasHtml.push(`
                     <tr>
                         <td style="text-align: center;">
-                            <img src="${imgSrc}" class="img-thumb" alt="prod" onerror="this.onerror=null; this.src='${imgPlaceholder}';">
+                            <img src="${imgSrc}" class="img-thumb" alt="prod" loading="lazy" onerror="this.onerror=null; this.src='${imgPlaceholder}';">
                         </td>
                         <td><strong>${p.codigo}</strong></td>
                         <td>${p.descripcion}</td>
-                        <td><span style="font-size:11px; font-weight:bold; color:#475569;">${p.depto || 'SALUD'}</span></td>
+                        <td><span style="font-size:11px; font-weight:bold; color:#475569;">${p.categoria || 'SALUD'}</span></td>
+                        <td style="text-align: right;" class="${stockClase}">${p.stock !== undefined ? p.stock : 0}</td>
                         <td style="text-align: right; font-weight: bold; color: #1e7e48;">${formatearMoneda(p.precio)}</td>
                         <td style="text-align: center;">
-                            <button class="btn-icon btn-editar" onclick="editarProducto(${indexReal})">✏️</button>
-                            <button class="btn-icon btn-borrar" onclick="borrarProducto(${indexReal})">🗑️</button>
+                            <button class="btn-icon btn-editar" onclick="editarProducto(${p.id})">✏️</button>
+                            <button class="btn-icon btn-borrar" onclick="borrarProducto(${p.id})">🗑️</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
+
+            tbody.innerHTML = filasHtml.join('');
         }
 
-        // Carga inicial
-        renderizarTabla();
+        // Carga inicial: trae los productos reales desde la API
+        cargarProductosAPI();
         calcularPrecioFinal();
     </script>
 </body>
