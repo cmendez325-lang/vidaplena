@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:3001'; // O el puerto correcto donde responde tu servidor
+// Detecta automáticamente si estás en la web (Netlify) o en la app de escritorio (Electron/Local)
+const API_BASE = window.location.hostname.includes('netlify.app') 
+    ? 'https://vidaplena-9jb2.onrender.com' 
+    : 'http://localhost:3001';
+
 const tablaProductos = document.getElementById('tablaProductos');
 
 async function cargarProductos() {
@@ -12,11 +16,10 @@ async function cargarProductos() {
         }
 
         const productos = await respuesta.json();
-
         tablaProductos.innerHTML = '';
 
         if (productos.length === 0) {
-            tablaProductos.innerHTML = `<tr><td colspan="6" style="text-align: center;">No hay productos registrados.</td></tr>`;
+            tablaProductos.innerHTML = `<tr><td colspan="7" style="text-align: center;">No hay productos registrados.</td></tr>`;
             return;
         }
 
@@ -49,7 +52,6 @@ async function cargarProductos() {
     }
 }
 
-// Ejecutar al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
 });
