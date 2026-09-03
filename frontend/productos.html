@@ -7,7 +7,7 @@
     
     <!-- Carga de SheetJS local (ya no depende de internet) -->
    <script src="./xlsx.full.min.js"></script>
-  
+ 
 
     <style>
         body {
@@ -356,9 +356,9 @@
     </div>
 
     <script>
-       const API_BASE = 'http://127.0.0.1:3001/api';
+       const API_BASE = 'https://vidaplena-9jb2.onrender.com/api';
 
-        let productos = [];       // se llena desde la API, no desde localStorage
+        let productos = [];      // se llena desde la API, no desde localStorage
         let base64ImageTemp = '';
 
         function formatearMoneda(monto) {
@@ -399,7 +399,7 @@
                 console.error('Error al cargar productos:', err);
                 const tbody = document.getElementById('tablaProductos');
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#c0392b; padding:20px;">
-                    No se pudo conectar con el servidor local (puerto 3001). Verificá que la app esté corriendo bien.
+                    No se pudo conectar con el servidor en la nube. Verificá tu conexión o que la app esté corriendo.
                 </td></tr>`;
             }
         }
@@ -580,10 +580,8 @@
 
             try {
                 if (!idActual) {
-                    // Producto nuevo: si no se subió imagen nueva, va vacío
                     await crearProductoAPI(prodObj);
                 } else {
-                    // Edición: si no se tocó el campo imagen, conservamos la que ya tenía
                     if (!base64ImageTemp) {
                         const existente = productos.find(p => p.id === parseInt(idActual));
                         prodObj.imagen = existente ? existente.imagen : '';
