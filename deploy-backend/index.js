@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 
-const db = require('./database');
+const { connectDB } = require('./database');
 const arcaService = require('./arca.service');
 
 const app = express();
@@ -9,13 +9,112 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. Endpoint real para obtener las ventas del día desde SQLite
-app.get('/api/ventas/hoy', (req, res) => {
+let db;
+
+// ---------- Productos ----------
+
+app.get('/api/productos', async (req, res) => {
     try {
-        const hoy = new Date().toISOString().split('T')[0];
-        
-        const stmt = db.prepare(`SELECT * FROM ventas WHERE DATE(fecha) = ?`);
-        const ventasDelDia = stmt.all(hoy);
+        const productos = await db.collection('productos').find().sort({ _id: -1 }).toArray();
+        const mapeados = productos.map(p => ({ ...p, id: p._id.toString() }));
+        res.json(mapeados);
+    } catch (error) {
+        console.error("Error al listar productos:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+app.post('/api/productos', async (req, res) => {
+    try {
+        const { codigo, descripcion, categoria, costo, ganancia, iva, precio, stock, imagen } = req.body;
+
+        if (!codigo || !descripcion) {
+            return res.status(400).json({ ok: false, error: 'Faltan código o descripción.' });
+        }
+
+        const nuevoDoc = {
+            codigo,
+            descripcion,
+            categoria: categoria || 'VARIOS',
+            costo: costo || 0,
+            ganancia: ganancia || 30,
+            iva: iva || 21,
+            precio: precio || 0,
+            stock: stock || 0,
+            imagen: imagen || ''
+        };
+
+        const resultado = await db.collection('productos').insertOne(nuevoDoc);
+        res.status(201).json({ ...nuevoDoc, id: resultado.insertedId.toString() });
+    } catch (error) {
+        console.error("Error al crear producto:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+app.put('/api/productos/:id', async (req, res) => {
+    try {
+        const { ObjectId } = require('mongodb');
+        const { id } = req.params;
+        const { codigo, descripcion, categoria, costo, ganancia, iva, precio, stock, imagen } = req.body;
+
+        const actualizado = {
+            codigo, descripcion,
+            categoria: categoria || 'VARIOS',
+            costo: costo || 0,
+            ganancia: ganancia || 30,
+            iva: iva || 21,
+            precio: precio || 0,
+            stock: stock || 0,
+            imagen: imagen || ''
+        };
+
+        const resultado = await db.collection('productos').findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            { $set: actualizado },
+            { returnDocument: 'after' }
+        );
+
+        if (!resultado) {
+            return res.status(404).json({ ok: false, error: 'Producto no encontrado.' });
+        }
+
+        res.json({ ...resultado, id: resultado._id.toString() });
+    } catch (error) {
+        console.error("Error al actualizar producto:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+app.delete('/api/productos/:id', async (req, res) => {
+    try {
+        const { ObjectId } = require('mongodb');
+        const { id } = req.params;
+
+        const resultado = await db.collection('productos').deleteOne({ _id: new ObjectId(id) });
+
+        if (resultado.deletedCount === 0) {
+            return res.status(404).json({ ok: false, error: 'Producto no encontrado.' });
+        }
+        res.json({ ok: true, mensaje: 'Producto eliminado correctamente.' });
+    } catch (error) {
+        console.error("Error al eliminar producto:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+// ---------- Ventas ----------
+
+app.get('/api/ventas/hoy', async (req, res) => {
+    try {
+        const inicioHoy = new Date();
+        inicioHoy.setHours(0, 0, 0, 0);
+        const finHoy = new Date();
+        finHoy.setHours(23, 59, 59, 999);
+
+        const ventasDelDia = await db.collection('ventas').find({
+            fecha: { $gte: inicioHoy, $lte: finHoy }
+        }).toArray();
 
         const totalVendido = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
         const cantTickets = ventasDelDia.length;
@@ -33,7 +132,8 @@ app.get('/api/ventas/hoy', (req, res) => {
     }
 });
 
-// 2. Endpoint para emisión real de Nota de Crédito mediante ARCA
+// ---------- Nota de Crédito (ARCA) ----------
+
 app.post('/api/nota-credito', async (req, res) => {
     try {
         const { total, condicionIva, cuitCliente, facturaOriginal, percepcionArba, tipoComprobante } = req.body;
@@ -58,11 +158,14 @@ app.post('/api/nota-credito', async (req, res) => {
         const resultadoArca = await arcaService.emitirNotaCredito(datosNC);
 
         try {
-            const insert = db.prepare(`
-                INSERT INTO notas_credito (cae, vencimiento_cae, numero, punto_venta, total, fecha) 
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            `);
-            insert.run(resultadoArca.cae, resultadoArca.vencimientoCae, resultadoArca.numeroComprobante, resultadoArca.puntoVenta, resultadoArca.importeTotal);
+            await db.collection('notas_credito').insertOne({
+                cae: resultadoArca.cae,
+                vencimiento_cae: resultadoArca.vencimientoCae,
+                numero: resultadoArca.numeroComprobante,
+                punto_venta: resultadoArca.puntoVenta,
+                total: resultadoArca.importeTotal,
+                fecha: new Date()
+            });
         } catch (dbError) {
             console.warn("La Nota de Crédito se autorizó en ARCA pero hubo un error al guardarla localmente:", dbError.message);
         }
@@ -81,8 +184,18 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Inicialización estándar para Render
+// ---------- Inicialización ----------
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor backend corriendo en el puerto ${PORT}`);
-});
+
+connectDB()
+    .then((database) => {
+        db = database;
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('No se pudo conectar a MongoDB:', err);
+        process.exit(1);
+    });

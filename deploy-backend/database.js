@@ -1,8 +1,20 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { MongoClient } = require('mongodb');
 
-const db = new Database(path.join(__dirname, 'vidaplena.db'));
+const uri = process.env.MONGODB_URI;
 
-// Acá van tus CREATE TABLE IF NOT EXISTS, etc.
+if (!uri) {
+    throw new Error('Falta la variable de entorno MONGODB_URI');
+}
 
-module.exports = db;
+const client = new MongoClient(uri);
+let db = null;
+
+async function connectDB() {
+    if (db) return db;
+    await client.connect();
+    db = client.db('vidaplena');
+    console.log('Conectado a MongoDB Atlas correctamente');
+    return db;
+}
+
+module.exports = { connectDB };

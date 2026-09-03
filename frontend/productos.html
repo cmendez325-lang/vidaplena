@@ -585,7 +585,7 @@
                     await crearProductoAPI(prodObj);
                 } else {
                     if (!base64ImageTemp) {
-                        const existente = productos.find(p => p.id === parseInt(idActual));
+                        const existente = productos.find(p => p.id === idActual);
                         prodObj.imagen = existente ? existente.imagen : '';
                     }
                     await actualizarProductoAPI(idActual, prodObj);
@@ -707,8 +707,8 @@
                         <td style="text-align: right;" class="${stockClase}">${p.stock !== undefined ? p.stock : 0}</td>
                         <td style="text-align: right; font-weight: bold; color: #1e7e48;">${formatearMoneda(p.precio)}</td>
                         <td style="text-align: center;">
-                            <button class="btn-icon btn-editar" onclick="editarProducto(${p.id})">✏️</button>
-                            <button class="btn-icon btn-borrar" onclick="borrarProducto(${p.id})">🗑️</button>
+                            <button class="btn-icon btn-editar" onclick="editarProducto('${p.id}')">✏️</button>
+<button class="btn-icon btn-borrar" onclick="borrarProducto('${p.id}')">🗑️</button>
                         </td>
                     </tr>
                 `);
