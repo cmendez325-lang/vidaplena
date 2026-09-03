@@ -82,15 +82,7 @@ app.post('/api/nota-credito', async (req, res) => {
 });
 
 // 3. Inicialización del Servidor con puerto dinámico y binding externo
-const PORT = process.env.PORT || 10000;
-const server = app.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor backend corriendo en el puerto ${PORT}`);
-});
-
-server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`El puerto ${PORT} ya está ocupado.`);
-    } else {
-        console.error(err);
-    }
 });
