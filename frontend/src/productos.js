@@ -9,7 +9,7 @@ async function cargarProductos() {
     if (!tablaProductos) return;
 
     try {
-        const respuesta = await fetch(`${API_BASE}/productos`);
+         const respuesta = await fetch(`${API_BASE}/api/productos`);
         
         if (!respuesta.ok) {
             throw new Error('Respuesta no OK del servidor');
