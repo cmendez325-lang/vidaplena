@@ -55,3 +55,14 @@ async function cargarProductos() {
 document.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
 });
+// Endpoint para obtener los productos desde SQLite
+app.get('/api/productos', (req, res) => {
+    try {
+        const stmt = db.prepare(`SELECT * FROM productos`);
+        const productos = stmt.all();
+        res.json(productos);
+    } catch (error) {
+        console.error("Error al obtener productos:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
