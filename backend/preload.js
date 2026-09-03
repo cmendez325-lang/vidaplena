@@ -1,6 +1,6 @@
 async function enviarFactura(datosVenta, puntoVentaSeleccionado) {
   try {
-    const respuesta = await fetch('http://localhost:3000/api/facturar', {
+    const respuesta = await fetch('https://vidaplena-9jb2.onrender.com/api/facturar', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -15,12 +15,11 @@ async function enviarFactura(datosVenta, puntoVentaSeleccionado) {
 
     if (resultado.success) {
       alert(`¡Factura emitida con éxito! CAE: ${resultado.data.cae}`);
-      // Aquí puedes actualizar la interfaz o imprimir el ticket
     } else {
       alert(`Error al emitir: ${resultado.error}`);
     }
   } catch (error) {
     console.error('Error de conexión con el servidor:', error);
-    alert('No se pudo conectar con el servidor de Facturación Méndez.');
+    alert('No se pudo conectar con el servidor de Facturación.');
   }
 }
