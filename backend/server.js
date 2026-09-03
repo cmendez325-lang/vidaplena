@@ -81,21 +81,7 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Inicialización única y segura del Servidor para Render
-const PORT = process.env.PORT || 3001;
-
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`El puerto ${PORT} ya está ocupado.`);
-  } else {
-    console.error(err);
-  }
-});
-// Endpoint para obtener los productos desde SQLite
+// 3. Endpoint para obtener los productos desde SQLite
 app.get('/api/productos', (req, res) => {
     try {
         const stmt = db.prepare(`SELECT * FROM productos`);
@@ -107,7 +93,7 @@ app.get('/api/productos', (req, res) => {
     }
 });
 
-// 3. Inicialización única y segura del Servidor para Render
+// 4. Inicialización única y segura del Servidor para Render
 const PORT = process.env.PORT || 3001;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
