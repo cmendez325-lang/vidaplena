@@ -94,16 +94,16 @@ app.get('/api/productos', (req, res) => {
 });
 
 // 4. Inicialización única y segura del Servidor para Render
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
 });
 
 server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`El puerto ${PORT} ya está ocupado.`);
-  } else {
-    console.error(err);
-  }
+    if (err.code === 'EADDRINUSE') {
+        console.error(`El puerto ${PORT} ya está ocupado.`);
+    } else {
+        console.error(err);
+    }
 });
