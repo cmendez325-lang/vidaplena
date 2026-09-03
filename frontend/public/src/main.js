@@ -7,7 +7,9 @@ const productosEjemplo = [
 ];
 
 // Misma URL de backend que usa productos.html
-const API_BASE = 'http://127.0.0.1:3001/api';
+const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://127.0.0.1:3001/api'
+    : 'https://vidaplena-1t86.onrender.com/api';
 
 // Estado global del ticket
 window.ticketActual = window.ticketActual || [];
