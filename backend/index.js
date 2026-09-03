@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. Endpoint real para obtener las ventas del día desde SQLite
+// 1. Endpoint para obtener las ventas del día desde SQLite
 app.get('/api/ventas/hoy', (req, res) => {
     try {
         const hoy = new Date().toISOString().split('T')[0];
@@ -33,7 +33,7 @@ app.get('/api/ventas/hoy', (req, res) => {
     }
 });
 
-// 2. Endpoint para emisión real de Nota de Crédito mediante ARCA
+// 2. Endpoint para emisión de Nota de Crédito mediante ARCA
 app.post('/api/nota-credito', async (req, res) => {
     try {
         const { total, condicionIva, cuitCliente, facturaOriginal, percepcionArba, tipoComprobante } = req.body;
@@ -93,7 +93,7 @@ app.get('/api/productos', (req, res) => {
     }
 });
 
-// 4. Inicialización única y segura del Servidor para Render
+// 4. Inicialización del Servidor
 const PORT = process.env.PORT || 10000;
 
 const server = app.listen(PORT, '0.0.0.0', () => {
