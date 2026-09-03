@@ -81,8 +81,28 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Inicialización única y limpia del Servidor para Render
+// 3. Inicialización única, limpia y blindada contra EADDRINUSE para Render
+const http = require('http');
+
+// ... (todo tu código anterior de express y rutas queda igual) ...
+
+// 3. Inicialización blindada con servidor HTTP explícito
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = http.createServer(app);
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.log(`Puerto ${PORT} ocupado por una instancia anterior, reintentando...`);
+        setTimeout(() => {
+            server.close();
+            server.listen(PORT, '0.0.0.0');
+        }, 1500);
+    } else {
+        console.error("Error crítico en el servidor:", err);
+        process.exit(1);
+    }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor backend corriendo en el puerto ${PORT}`);
 });
