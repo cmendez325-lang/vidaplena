@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001/api';
+const API_URL = 'https://vidaplena-9jb2.onrender.com/api';
 const tablaProductos = document.getElementById('tablaProductos');
 
 async function cargarProductos() {
