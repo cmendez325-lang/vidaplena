@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 1. Endpoint para obtener las ventas del día desde SQLite
+// 1. Endpoint real para obtener las ventas del día desde SQLite
 app.get('/api/ventas/hoy', (req, res) => {
     try {
         const hoy = new Date().toISOString().split('T')[0];
@@ -33,7 +33,7 @@ app.get('/api/ventas/hoy', (req, res) => {
     }
 });
 
-// 2. Endpoint para emisión de Nota de Crédito mediante ARCA
+// 2. Endpoint para emisión real de Nota de Crédito mediante ARCA
 app.post('/api/nota-credito', async (req, res) => {
     try {
         const { total, condicionIva, cuitCliente, facturaOriginal, percepcionArba, tipoComprobante } = req.body;
@@ -81,23 +81,10 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Endpoint para obtener los productos desde SQLite
-app.get('/api/productos', (req, res) => {
-    try {
-        const stmt = db.prepare(`SELECT * FROM productos`);
-        const productos = stmt.all();
-        res.json(productos);
-    } catch (error) {
-        console.error("Error al obtener productos:", error);
-        res.status(500).json({ ok: false, error: error.message });
-    }
-});
-
-// 4. Inicialización del Servidor
+// 3. Inicialización del Servidor con puerto dinámico y binding externo
 const PORT = process.env.PORT || 10000;
-
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Servidor backend corriendo en el puerto ${PORT}`);
 });
 
 server.on('error', (err) => {
