@@ -81,7 +81,7 @@ app.post('/api/nota-credito', async (req, res) => {
     }
 });
 
-// 3. Inicialización limpia del Servidor para Render
+// 3. Inicialización única y limpia del Servidor para Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor backend corriendo en el puerto ${PORT}`);
