@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar sesión - Vida Plena</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .login-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            width: 320px;
+            text-align: center;
+        }
+
+        .login-card img {
+            height: 70px;
+            margin-bottom: 10px;
+        }
+
+        .login-card h2 {
+            margin: 0 0 20px 0;
+            color: #1f618d;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 4px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn-login {
+            width: 100%;
+            background-color: #1e7e48;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover { background-color: #165e36; }
+        .btn-login:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+        .error-msg {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <img src="./logo.png" alt="Vida Plena Logo" onerror="this.style.display='none';">
+        <h2>Iniciar sesión</h2>
+
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="txtUsuario" autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="txtContrasena" autocomplete="current-password">
+        </div>
+
+        <button type="button" class="btn-login" id="btnLogin" onclick="hacerLogin()">Ingresar</button>
+
+        <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:3001/api'
+            : 'https://vidaplena-lt86.onrender.com/api';
+
+        async function hacerLogin() {
+            const usuario = document.getElementById('txtUsuario').value.trim();
+            const contrasena = document.getElementById('txtContrasena').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const btnLogin = document.getElementById('btnLogin');
+
+            errorMsg.style.display = 'none';
+
+            if (!usuario || !contrasena) {
+                errorMsg.textContent = 'Ingresá usuario y contraseña.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Ingresando...';
+
+            try {
+                const resp = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, contrasena })
+                });
+                const data = await resp.json();
+
+                if (!resp.ok || !data.ok) {
+                    throw new Error(data.error || 'No se pudo iniciar sesión.');
+                }
+
+                localStorage.setItem('vidaplena_token', data.token);
+                window.location.href = 'index.html';
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Ingresar';
+            }
+        }
+
+        document.getElementById('txtContrasena').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') hacerLogin();
+        });
+    </script>
+</body>
+</html>
