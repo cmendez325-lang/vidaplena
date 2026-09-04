@@ -1,6 +1,7 @@
-// Incluir este script (con <script src="auth.js"></script>) en el <head>
-// de TODAS las páginas que deben estar protegidas por login,
-// ANTES de que se cargue el resto del contenido de la página.
+// Incluir este script (con <script src="./src/auth.js"></script>) en el <head>
+// de TODAS las páginas que deben estar protegidas por login (index.html, productos.html,
+// listados.html, etc.), ANTES de que se cargue main.js o cualquier otro script que
+// haga fetch al backend. NO incluir este script en login.html.
 (function () {
     const token = localStorage.getItem('vidaplena_token');
     if (!token) {

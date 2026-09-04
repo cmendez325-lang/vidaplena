@@ -38,12 +38,15 @@ function mapearProducto(p) {
 }
 
 // Intenta traer el catálogo real desde el backend (misma fuente que productos.html)
-async function cargarCatalogoDesdeAPI() {
+// Reintenta una vez más si falla, para tolerar el "cold start" del backend en Render (free tier)
+async function cargarCatalogoDesdeAPI(intento = 1) {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s: cubre cold starts típicos de Render
 
-        const resp = await fetch(`${API_BASE}/productos`, { signal: controller.signal });
+        // Usa fetchConAuth (definido en auth.js) para incluir el token JWT si está disponible
+        const fetchFn = typeof fetchConAuth === 'function' ? fetchConAuth : fetch;
+        const resp = await fetchFn(`${API_BASE}/productos`, { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (resp.ok) {
@@ -54,7 +57,13 @@ async function cargarCatalogoDesdeAPI() {
             }
         }
     } catch (err) {
-        console.warn('No se pudo conectar con el backend en la nube. Usando respaldo local.', err);
+        console.warn(`Intento ${intento} falló al conectar con el backend en la nube.`, err);
+        if (intento < 2) {
+            // El backend puede estar despertando del cold start: reintenta una vez más
+            setTimeout(() => cargarCatalogoDesdeAPI(intento + 1), 3000);
+        } else {
+            console.warn('Se agotaron los reintentos. Usando respaldo local.');
+        }
     }
 }
 
@@ -115,7 +124,7 @@ window.eliminarItem = function(index) {
 function agregarProductoAlTicket(producto, cantidad = 1) {
     const codStr = String(producto.codigo);
     const existe = window.ticketActual.find(p => String(p.codigo) === codStr && codStr !== 'DEP');
-    
+
     if (existe) {
         existe.cantidad += cantidad;
     } else {
@@ -153,7 +162,7 @@ function mostrarPreviewProducto(producto) {
 
     const precioVenta = Number(producto.precio_venta || producto.precio || 0);
     const precioFmt = precioVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 });
-    
+
     // Se deja vacío el texto del nombre para que no se muestre debajo de la imagen
     if (nombreEl) nombreEl.innerText = '';
 
@@ -210,7 +219,7 @@ function recalcularPago() {
     const debito = parseFloat(document.getElementById('pagoDebito')?.value) || 0;
 
     const totalPagado = efectivo + credito + cc + debito;
-    
+
     // Tomar total a pagar del modal
     const lblTotalPagar = document.getElementById('lblTotalPagar');
     let totalTicket = 0;
@@ -248,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputNombre && listaSugerencias) {
         inputNombre.addEventListener('input', (e) => {
             const busqueda = normalizarTexto(e.target.value.trim());
-            
+
             if (busqueda.length < 1) {
                 listaSugerencias.style.display = 'none';
                 mostrarPreviewProducto(null);
@@ -256,8 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const productos = obtenerProductos();
-            const coincidencias = productos.filter(p => 
-                normalizarTexto(p.descripcion).includes(busqueda) || 
+            const coincidencias = productos.filter(p =>
+                normalizarTexto(p.descripcion).includes(busqueda) ||
                 normalizarTexto(p.codigo).includes(busqueda)
             );
 
@@ -270,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sinResultados.innerText = 'Sin coincidencias en el catálogo';
                 listaSugerencias.appendChild(sinResultados);
             } else {
-                coincidencias.slice(0, 15).forEach(p => { 
+                coincidencias.slice(0, 15).forEach(p => {
                     const item = document.createElement('div');
                     item.className = 'sugerencia-item';
                     item.innerHTML = `<span>${p.descripcion} <small style="color:#666;">(${p.codigo})</small></span> <strong>$${p.precio_venta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>`;

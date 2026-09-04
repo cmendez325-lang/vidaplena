@@ -5,3 +5,10 @@ Tostina2026
 
 
 Daniela26 - Contraseña Ayeliabenja
+
+cd frontend
+npx vite build
+cd ..
+git add .
+git commit -m "Agregar login y proteger rutas con JWT"
+git push origin main
