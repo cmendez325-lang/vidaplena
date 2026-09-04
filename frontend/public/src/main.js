@@ -9,7 +9,7 @@ const productosEjemplo = [
 // Misma URL de backend que usa productos.html
 const API_BASE = window.location.hostname === 'localhost'
     ? 'http://127.0.0.1:3001/api'
-    : 'https://vidaplena-1t86.onrender.com/api';
+    : 'https://vidaplena-lt86.onrender.com/api';
 
 // Estado global del ticket
 window.ticketActual = window.ticketActual || [];
@@ -41,7 +41,7 @@ function mapearProducto(p) {
 async function cargarCatalogoDesdeAPI() {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const resp = await fetch(`${API_BASE}/productos`, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -54,7 +54,7 @@ async function cargarCatalogoDesdeAPI() {
             }
         }
     } catch (err) {
-        console.warn('No se pudo conectar con el backend (127.0.0.1:3001). Usando respaldo local.', err);
+        console.warn('No se pudo conectar con el backend en la nube. Usando respaldo local.', err);
     }
 }
 
