@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <script src="auth.js"></script>
     <title>Gestión de Artículos - Sistema de Facturación</title>
     <link rel="stylesheet" href="src/style.css" />
     
@@ -393,7 +394,7 @@
         // ---------- Comunicación con la API ----------
         async function cargarProductosAPI() {
             try {
-                const resp = await fetch(`${API_BASE}/productos`);
+                const resp = await fetchConAuth(`${API_BASE}/productos`);
                 if (!resp.ok) throw new Error('Respuesta no OK del servidor');
                 productos = await resp.json();
                 renderizarTabla();
@@ -407,7 +408,7 @@
         }
 
         async function crearProductoAPI(prodObj) {
-            const resp = await fetch(`${API_BASE}/productos`, {
+            const resp = await fetchConAuth(`${API_BASE}/productos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(prodObj)
@@ -418,7 +419,7 @@
         }
 
         async function actualizarProductoAPI(id, prodObj) {
-            const resp = await fetch(`${API_BASE}/productos/${id}`, {
+            const resp = await fetchConAuth(`${API_BASE}/productos/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(prodObj)
@@ -429,7 +430,7 @@
         }
 
         async function borrarProductoAPI(id) {
-            const resp = await fetch(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
+            const resp = await fetchConAuth(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.error || 'Error al eliminar producto');
             return data;

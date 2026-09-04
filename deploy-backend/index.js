@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const { connectDB } = require('./database');
 const arcaService = require('./arca.service');
@@ -10,6 +12,59 @@ app.use(express.json());
 app.use(cors());
 
 let db;
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('Falta la variable de entorno JWT_SECRET');
+}
+
+// ---------- Login (ruta pública, no requiere token) ----------
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { usuario, contrasena } = req.body;
+
+        if (!usuario || !contrasena) {
+            return res.status(400).json({ ok: false, error: 'Faltan usuario o contraseña.' });
+        }
+
+        const user = await db.collection('usuarios').findOne({ usuario });
+        if (!user) {
+            return res.status(401).json({ ok: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const passwordOk = await bcrypt.compare(contrasena, user.passwordHash);
+        if (!passwordOk) {
+            return res.status(401).json({ ok: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const token = jwt.sign({ usuario: user.usuario }, JWT_SECRET, { expiresIn: '12h' });
+        res.json({ ok: true, token });
+    } catch (error) {
+        console.error("Error en login:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
+// ---------- Middleware de autenticación (protege todo lo que sigue) ----------
+
+function verificarToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ ok: false, error: 'No autorizado. Falta el token.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        req.usuario = payload.usuario;
+        next();
+    } catch (err) {
+        return res.status(401).json({ ok: false, error: 'Token inválido o expirado.' });
+    }
+}
+
+app.use('/api', verificarToken);
 
 // ---------- Productos ----------
 
