@@ -7,6 +7,7 @@
     <script src="./layout.js"></script>
     <title>Gestión de Artículos - Sistema de Facturación</title>
     <link rel="stylesheet" href="src/style.css" />
+
     <style>
         body {
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -104,6 +105,7 @@
         }
 
         .btn-verde:hover { background-color: #165e36; }
+        .btn-verde:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
         table {
             width: 100%;
@@ -128,9 +130,11 @@
         .img-thumb {
             width: 38px;
             height: 38px;
-            object-fit: contain;
+            object-fit: cover;
             border-radius: 4px;
             border: 1px solid #e2e8f0;
+            display: block;
+            margin: 0 auto;
         }
 
         .btn-icon {
@@ -149,6 +153,8 @@
 
         .btn-borrar { background-color: #ef4444; }
         .btn-borrar:hover { background-color: #dc2626; }
+
+        .stock-bajo { color: #dc2626; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -156,24 +162,23 @@
     <!-- Menú Superior: el contenido lo genera layout.js automáticamente -->
     <div class="menu-bar">
     </div>
-    
-<div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
-    <img src="./logo.png" 
-         alt="Vida Plena Logo" 
-         style="height: 80px; width: auto; max-width: 250px; object-fit: contain; display: block;" 
-         onerror="this.onerror=null; this.style.display='none';">
-    <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
-</div>
 
+    <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
+        <img src="./logo.png"
+             alt="Vida Plena Logo"
+             style="height: 80px; width: auto; max-width: 250px; object-fit: contain; display: block;"
+             onerror="this.onerror=null; this.style.display='none';">
+        <h3 class="caja-title" style="margin: 0; margin-bottom: 4px; border-bottom: none; padding-bottom: 0; color: #1f618d; font-style: italic;">Insumos Hospitalarios</h3>
+    </div>
 
     <div style="padding: 20px; max-width: 1350px; margin: 0 auto;">
-        
+
         <div class="layout-grid">
-            
+
             <!-- Formulario de Artículo -->
             <div class="card">
-                <h3>Nuevo Artículo</h3>
-                <input type="hidden" id="txtIndex" value="-1">
+                <h3 id="lblTituloFormulario">Nuevo Artículo</h3>
+                <input type="hidden" id="txtId" value="">
 
                 <div class="form-group">
                     <label>Código de Barras</label>
@@ -185,9 +190,15 @@
                     <input type="text" id="txtNombre" placeholder="Ej. Nombre o descripción del artículo">
                 </div>
 
-                <div class="form-group">
-                    <label>Costo Neto ($)</label>
-                    <input type="number" id="txtCosto" step="0.01" value="0.00" oninput="calcularPrecioFinal()">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Costo Neto ($)</label>
+                        <input type="number" id="txtCosto" step="0.01" value="0.00" oninput="calcularPrecioFinal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock</label>
+                        <input type="number" id="txtStock" step="1" value="0">
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -207,7 +218,7 @@
 
                 <div class="box-precio-final">
                     <span>PRECIO FINAL CALCULADO</span>
-                    <h2 id="lblPrecioCalculado">$0,00</h2>
+                    <h2 id="lblPrecioCalculado">$ 0.00</h2>
                 </div>
 
                 <div class="form-group">
@@ -227,12 +238,17 @@
                     </select>
                 </div>
 
-                <button type="button" class="btn-verde" onclick="guardarProducto()">Guardar Producto</button>
+                <button type="button" class="btn-verde" id="btnGuardar" onclick="guardarProducto()">Guardar Producto</button>
             </div>
 
             <!-- Tabla de Productos -->
             <div class="card">
                 <h3>Base de Datos de Productos</h3>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <input type="text" id="txtBuscador" placeholder="🔍 Buscar por código, descripción o departamento..." onkeyup="renderizarTabla()">
+                </div>
+
                 <div style="overflow-x: auto; max-height: 560px;">
                     <table>
                         <thead>
@@ -241,6 +257,7 @@
                                 <th style="width: 110px;">Código</th>
                                 <th>Descripción</th>
                                 <th>Depto.</th>
+                                <th style="text-align: right; width: 70px;">Stock</th>
                                 <th style="text-align: right; width: 100px;">Venta</th>
                                 <th style="text-align: center; width: 80px;">Acción</th>
                             </tr>
@@ -257,17 +274,11 @@
     </div>
 
     <script>
-        let productos = JSON.parse(localStorage.getItem('listaProductos')) || [
-            { idImg: '', codigo: "779003001", descripcion: "Catéteres Especializados", depto: "EQUIPAMIENTO", precio: 5033.60 },
-            { idImg: '', codigo: "779003002", descripcion: "Bola de Masaje", depto: "BIENESTAR", precio: 11797.50 },
-            { idImg: '', codigo: "779003003", descripcion: "Cojín Dona Pequeño", depto: "ORTOPEDIA", precio: 4404.40 },
-            { idImg: '', codigo: "779003004", descripcion: "K-Stat Suministro de Soporte", depto: "EQUIPAMIENTO", precio: 5505.50 },
-            { idImg: '', codigo: "779001001", descripcion: "Venda Elástica Flebológica", depto: "DESCARTABLES", precio: 7865.00 },
-            { idImg: '', codigo: "779001003", descripcion: "Cinta Kinesiológica K5.0", depto: "ORTOPEDIA", precio: 3146.00 },
-            { idImg: '', codigo: "779001002", descripcion: "Barbijo Descartable Vida Plena", depto: "DESCARTABLES", precio: 2359.50 },
-            { idImg: '', codigo: "779002002", descripcion: "Asiento Dual Confort Schwartz", depto: "ORTOPEDIA", precio: 0.00 }
-        ];
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:3001/api'
+            : 'https://vidaplena-lt86.onrender.com/api';
 
+        let productos = [];      // se llena desde la API, no desde localStorage
         let base64ImageTemp = '';
 
         function formatearMoneda(monto) {
@@ -297,12 +308,61 @@
             }
         }
 
-        function guardarProducto() {
+        // ---------- Comunicación con la API (misma que productos.html) ----------
+        async function cargarProductosAPI() {
+            try {
+                const resp = await fetchConAuth(`${API_BASE}/productos`);
+                if (!resp.ok) throw new Error('Respuesta no OK del servidor');
+                productos = await resp.json();
+                renderizarTabla();
+            } catch (err) {
+                console.error('Error al cargar productos:', err);
+                const tbody = document.getElementById('tablaProductos');
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#c0392b; padding:20px;">
+                    No se pudo conectar con el servidor en la nube. Verificá tu conexión o que la app esté corriendo.
+                </td></tr>`;
+            }
+        }
+
+        async function crearProductoAPI(prodObj) {
+            const resp = await fetchConAuth(`${API_BASE}/productos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prodObj)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al crear producto');
+            return data;
+        }
+
+        async function actualizarProductoAPI(id, prodObj) {
+            const resp = await fetchConAuth(`${API_BASE}/productos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prodObj)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al actualizar producto');
+            return data;
+        }
+
+        async function borrarProductoAPI(id) {
+            const resp = await fetchConAuth(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Error al eliminar producto');
+            return data;
+        }
+
+        async function guardarProducto() {
             let codigo = document.getElementById('txtCodigo').value.trim();
             let descripcion = document.getElementById('txtNombre').value.trim();
             let depto = document.getElementById('selectDepto').value;
+            let costo = parseFloat(document.getElementById('txtCosto').value) || 0;
+            let ganancia = parseFloat(document.getElementById('txtGanancia').value) || 0;
+            let iva = parseFloat(document.getElementById('selectIva').value) || 0;
+            let stock = parseInt(document.getElementById('txtStock').value) || 0;
             let precio = calcularPrecioFinal();
-            let index = parseInt(document.getElementById('txtIndex').value);
+            let idActual = document.getElementById('txtId').value;
 
             if (!codigo || !descripcion) {
                 alert("Por favor ingresá el código y la descripción del producto.");
@@ -310,79 +370,138 @@
             }
 
             let prodObj = {
-                idImg: base64ImageTemp,
                 codigo: codigo,
                 descripcion: descripcion,
-                depto: depto,
-                precio: precio
+                categoria: depto,
+                costo: costo,
+                ganancia: ganancia,
+                iva: iva,
+                precio: precio,
+                stock: stock,
+                imagen: base64ImageTemp
             };
 
-            if (index === -1) {
-                productos.push(prodObj);
-            } else {
-                if (!base64ImageTemp) prodObj.idImg = productos[index].idImg;
-                productos[index] = prodObj;
-                document.getElementById('txtIndex').value = "-1";
+            const btnGuardar = document.getElementById('btnGuardar');
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+
+            try {
+                if (!idActual) {
+                    await crearProductoAPI(prodObj);
+                } else {
+                    if (!base64ImageTemp) {
+                        const existente = productos.find(p => p.id === idActual);
+                        prodObj.imagen = existente ? existente.imagen : '';
+                    }
+                    await actualizarProductoAPI(idActual, prodObj);
+                }
+
+                await cargarProductosAPI();
+                vaciarFormulario();
+            } catch (err) {
+                console.error('Error al guardar producto:', err);
+                alert('No se pudo guardar el producto: ' + err.message);
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = idActual ? 'Actualizar Producto' : 'Guardar Producto';
             }
+        }
 
-            localStorage.setItem('listaProductos', JSON.stringify(productos));
+        function editarProducto(id) {
+            let p = productos.find(prod => prod.id === id);
+            if (!p) return;
 
-            // Resetear
+            document.getElementById('txtCodigo').value = p.codigo;
+            document.getElementById('txtNombre').value = p.descripcion;
+            document.getElementById('selectDepto').value = p.categoria || 'SALUD';
+            document.getElementById('txtCosto').value = p.costo !== undefined ? p.costo : 0;
+            document.getElementById('txtGanancia').value = p.ganancia !== undefined ? p.ganancia : 30;
+            document.getElementById('selectIva').value = p.iva !== undefined ? p.iva : 21;
+            document.getElementById('txtStock').value = p.stock !== undefined ? p.stock : 0;
+
+            document.getElementById('txtId').value = p.id;
+            document.getElementById('lblTituloFormulario').textContent = "Editar Artículo";
+            document.getElementById('btnGuardar').textContent = "Actualizar Producto";
+
+            base64ImageTemp = p.imagen || '';
+            calcularPrecioFinal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function vaciarFormulario() {
+            document.getElementById('txtId').value = "";
             document.getElementById('txtCodigo').value = '';
             document.getElementById('txtNombre').value = '';
             document.getElementById('txtCosto').value = '0.00';
+            document.getElementById('txtGanancia').value = '30';
+            document.getElementById('selectIva').value = '21';
+            document.getElementById('txtStock').value = '0';
             document.getElementById('fileImagen').value = '';
+            document.getElementById('lblTituloFormulario').textContent = "Nuevo Artículo";
+            document.getElementById('btnGuardar').textContent = "Guardar Producto";
             base64ImageTemp = '';
             calcularPrecioFinal();
-
-            renderizarTabla();
         }
 
-        function editarProducto(index) {
-            let p = productos[index];
-            document.getElementById('txtCodigo').value = p.codigo;
-            document.getElementById('txtNombre').value = p.descripcion;
-            document.getElementById('selectDepto').value = p.depto || 'SALUD';
-            document.getElementById('lblPrecioCalculado').textContent = formatearMoneda(p.precio);
-            document.getElementById('txtIndex').value = index;
-            base64ImageTemp = p.idImg || '';
-        }
+        async function borrarProducto(id) {
+            if (!confirm("¿Deseas eliminar este producto de la base de datos?")) return;
 
-        function borrarProducto(index) {
-            if (confirm("¿Deseas eliminar este producto de la base de datos?")) {
-                productos.splice(index, 1);
-                localStorage.setItem('listaProductos', JSON.stringify(productos));
-                renderizarTabla();
+            try {
+                await borrarProductoAPI(id);
+                await cargarProductosAPI();
+            } catch (err) {
+                console.error('Error al borrar producto:', err);
+                alert('No se pudo eliminar el producto: ' + err.message);
             }
         }
 
         function renderizarTabla() {
             let tbody = document.getElementById('tablaProductos');
-            tbody.innerHTML = '';
+            let filtro = (document.getElementById('txtBuscador').value || '').toLowerCase();
 
-            productos.forEach((p, index) => {
-                let imgHtml = p.idImg 
-                    ? `<img src="${p.idImg}" class="img-thumb">` 
-                    : `<div style="width:38px;height:38px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;">📦</div>`;
+            let productosFiltrados = productos.filter(p =>
+                (p.codigo || '').toLowerCase().includes(filtro) ||
+                (p.descripcion || '').toLowerCase().includes(filtro) ||
+                (p.categoria && p.categoria.toLowerCase().includes(filtro))
+            );
 
-                tbody.innerHTML += `
+            let imgPlaceholder = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m7.5 4.27 9 5.15'/><path d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'/><path d='m3.3 7 8.7 5 8.7-5'/><path d='M12 12v10'/></svg>`;
+
+            if (productosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #718096; padding: 20px;">No se encontraron productos.</td></tr>`;
+                return;
+            }
+
+            let filasHtml = [];
+
+            productosFiltrados.forEach((p) => {
+                let tieneImagen = p.imagen && typeof p.imagen === 'string' && p.imagen.trim() !== '';
+                let imgSrc = tieneImagen ? p.imagen.trim() : imgPlaceholder;
+                let stockClase = (p.stock !== undefined && p.stock <= 3) ? 'stock-bajo' : '';
+
+                filasHtml.push(`
                     <tr>
-                        <td>${imgHtml}</td>
+                        <td>
+                            <img src="${imgSrc}" class="img-thumb" alt="prod" loading="lazy" onerror="this.onerror=null; this.src='${imgPlaceholder}';">
+                        </td>
                         <td><strong>${p.codigo}</strong></td>
                         <td>${p.descripcion}</td>
-                        <td><span style="font-size:11px; font-weight:bold; color:#475569;">${p.depto || 'SALUD'}</span></td>
+                        <td><span style="font-size:11px; font-weight:bold; color:#475569;">${p.categoria || 'SALUD'}</span></td>
+                        <td style="text-align: right;" class="${stockClase}">${p.stock !== undefined ? p.stock : 0}</td>
                         <td style="text-align: right; font-weight: bold; color: #1e7e48;">${formatearMoneda(p.precio)}</td>
                         <td style="text-align: center;">
-                            <button class="btn-icon btn-editar" onclick="editarProducto(${index})">✏️</button>
-                            <button class="btn-icon btn-borrar" onclick="borrarProducto(${index})">🗑️</button>
+                            <button class="btn-icon btn-editar" onclick="editarProducto('${p.id}')">✏️</button>
+                            <button class="btn-icon btn-borrar" onclick="borrarProducto('${p.id}')">🗑️</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
+
+            tbody.innerHTML = filasHtml.join('');
         }
 
-        // Carga inicial
-        renderizarTabla();
+        // Carga inicial: trae los productos reales desde la API (igual que productos.html)
+        cargarProductosAPI();
         calcularPrecioFinal();
     </script>
 </body>
