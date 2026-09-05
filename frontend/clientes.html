@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="auth.js"></script>
+    <script src="./layout.js"></script>
     <title>Gestión de Clientes - Sistema de Facturación</title>
     <link rel="stylesheet" href="src/style.css" />
     <style>
@@ -11,23 +14,6 @@
             margin: 0;
             padding: 0;
             color: #2d3748;
-        }
-
-        .menu-bar {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            height: 48px;
-        }
-
-        .menu-bar a {
-            color: #1e40af;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
         }
 
         .layout-grid {
@@ -126,18 +112,8 @@
 </head>
 <body>
 
-    <!-- Menú Superior -->
+    <!-- Menú Superior: el contenido lo genera layout.js automáticamente -->
     <div class="menu-bar">
-        <a href="index.html">Archivo / Caja</a>
-        <a href="productos.html">Artículos</a>
-        <a href="ventas.html">Ventas</a>
-        <a href="compras.html">Compras</a>
-        <a href="clientes.html"><strong>Clientes</strong></a>
-        <a href="informes.html">Informes</a>
-        <a href="proveedores.html">Proveedores</a>
-        <a href="listados.html">Listados</a>
-        <a href="alquileres.html">Alquileres</a>
-        <a href="ayuda.html">Ayuda</a>
     </div>
     <!-- Encabezado con Logo y Subtítulo -->
 <div style="display: flex; align-items: flex-end; gap: 12px; margin-top: 5px; margin-bottom: 15px; border-bottom: none; padding-bottom: 0;">
