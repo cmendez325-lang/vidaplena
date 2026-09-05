@@ -66,6 +66,61 @@ function verificarToken(req, res, next) {
 
 app.use('/api', verificarToken);
 
+// Crea una venta nueva: emite el comprobante en ARCA y lo guarda en Mongo
+app.post('/api/ventas', async (req, res) => {
+    try {
+        const { items, tipoComprobante, condicionIva, cuitCliente, pagos, percepcionArba } = req.body;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ ok: false, error: 'El ticket no tiene artículos.' });
+        }
+
+        const total = items.reduce((acc, it) => acc + (Number(it.cantidad) * Number(it.precio)), 0);
+
+        if (total <= 0) {
+            return res.status(400).json({ ok: false, error: 'El total de la venta debe ser mayor a 0.' });
+        }
+
+        const datosVenta = {
+            tipoComprobante: tipoComprobante || 'Ticket Fiscal',
+            condicionIva: condicionIva || 'Consumidor Final',
+            cuitCliente: cuitCliente || '',
+            total,
+            percepcionArba: percepcionArba || 0
+        };
+
+        const puntoVenta = 1;
+        const resultadoArca = await arcaService.emitirComprobante(datosVenta, puntoVenta);
+
+        const ahora = new Date();
+
+        const nuevaVenta = {
+            id: String(resultadoArca.numeroComprobante),
+            fecha: ahora,
+            hora: ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+            tipo: datosVenta.tipoComprobante,
+            articulos: items.reduce((acc, it) => acc + Number(it.cantidad), 0),
+            total: resultadoArca.importeTotal,
+            lista: items.map(it => ({ cant: it.cantidad, desc: it.nombre, precio: it.precio })),
+            condicionIva: datosVenta.condicionIva,
+            cuitCliente: datosVenta.cuitCliente,
+            tipoCbteCode: resultadoArca.tipoComprobante,
+            puntoVenta: resultadoArca.puntoVenta,
+            numeroComprobante: resultadoArca.numeroComprobante,
+            cae: resultadoArca.cae,
+            vencimiento_cae: resultadoArca.vencimientoCae,
+            pagos: pagos || {}
+        };
+
+        await db.collection('ventas').insertOne(nuevaVenta);
+
+        return res.status(201).json({ ok: true, venta: nuevaVenta });
+    } catch (error) {
+        console.error('Error al registrar la venta con ARCA:', error);
+        return res.status(500).json({ ok: false, error: error.message });
+    }
+});
+
 // ---------- Productos ----------
 
 app.get('/api/productos', async (req, res) => {
