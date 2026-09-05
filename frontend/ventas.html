@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="auth.js"></script>
+    <script src="./layout.js"></script>
     <title>Ventas del Día - Sistema de Facturación</title>
     <link rel="stylesheet" href="src/style.css" />
     <style>
@@ -131,18 +133,8 @@
 </head>
 <body>
 
-    <!-- Menú Superior -->
+    <!-- Menú Superior: el contenido lo genera layout.js automáticamente -->
     <div class="menu-bar no-print">
-        <a href="index.html">Archivo / Caja</a>
-        <a href="productos.html">Artículos</a>
-        <a href="ventas.html"><strong>Ventas</strong></a>
-        <a href="compras.html">Compras</a>
-        <a href="clientes.html">Clientes</a>
-        <a href="informes.html">Informes</a>
-        <a href="proveedores.html">Proveedores</a>
-        <a href="listados.html">Listados</a>
-        <a href="alquileres.html">Alquileres</a>
-        <a href="ayuda.html">Ayuda</a>
     </div>
 
     <!-- Encabezado con Logo -->
@@ -220,6 +212,11 @@
     </div>
 
     <script>
+        // Misma convención de API_BASE que usan las demás páginas (Caja, Artículos)
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:3001/api'
+            : 'https://vidaplena-lt86.onrender.com/api';
+
         let ventasDelDia = [];
 
         function fmt(n) {
@@ -234,7 +231,7 @@
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #777;">Cargando...</td></tr>';
 
             try {
-                const respuesta = await fetch('http://localhost:3000/api/ventas/hoy');
+                const respuesta = await fetchConAuth(`${API_BASE}/ventas/hoy`);
                 if (!respuesta.ok) throw new Error('Error al consultar el backend');
                 const datos = await respuesta.json();
 
@@ -247,7 +244,7 @@
                 renderizarTablaVentas();
             } catch (err) {
                 console.error('Error cargando ventas del día:', err);
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #c0392b;">No se pudo conectar con el backend. ¿Está corriendo node server.js?</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #c0392b;">No se pudo conectar con el backend en la nube.</td></tr>';
             }
         }
 
@@ -334,7 +331,7 @@
             if (!confirm(`¿Confirmás la emisión de la Nota de Crédito para el Ticket N° ${venta.id}?`)) return;
 
             try {
-                const res = await fetch('http://localhost:3000/api/nota-credito', {
+                const res = await fetchConAuth(`${API_BASE}/nota-credito`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
